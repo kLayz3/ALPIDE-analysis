@@ -61,8 +61,9 @@ vector<vector<Point>> AlpideClustering::ConstructClusters(unsigned* ColArray, un
     return clusters;
 }
 
-tuple<float,float,float,float,int> AlpideClustering::FitCluster(const vector<Point>& cluster) {
+unsigned AlpideClustering::FitCluster(const vector<Point>& cluster, float& uX, float& uY, float& sX, float& sY) {
     int N = cluster.size();
+	if(N==0) return 0;
     float meanX(0.); float sigmaX; //col
     float meanY(0.); float sigmaY; //row
     for(auto& p : cluster) {
@@ -77,6 +78,10 @@ tuple<float,float,float,float,int> AlpideClustering::FitCluster(const vector<Poi
     sigmaX = (sigmaX>0) ? sqrt(sigmaX) : 0; 
     sigmaY = sigmaY/N - meanY*meanY;
     sigmaY = (sigmaY>0) ? sqrt(sigmaY) : 0;
-    return make_tuple(meanX, meanY, sigmaX, sigmaY, N); 
+
+	/* Bind to arguments finally -> faster runtime when doing calculations on local stack variables 
+	 * rather than pushing/popping passed-by-reference variables -- M.B. */
+	uX = meanX; uY = meanY; sX = sigmaX; sY = sigmaY;
+    return N;
 }
 

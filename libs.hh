@@ -82,12 +82,12 @@ Good luck, have fun <(^.^)>\n\n";
 
 extern const std::string clusterise_help =
 "\nUsage: ./clusterise <OPT1> <OPT2> ...\n\
-file=/PATH/TO/FILE/file.root\n\
---first-event=N   Start from N-th event. Default 0. \n\
---max-events=N    Specify maximum number of events. Default all entries.\n\
---veto=N          Remove clusters with size<=N.\n\
---output=/PATH/TO/FILE/file.root \n\
-				  Specify output file name. Default same as input file with cl suffix.\n\
+file=/PATH/TO/file.root\n\
+--first-event=N        Start from N-th event. Default 0. \n\
+--max-events=N         Specify maximum number of events. Default all entries.\n\
+--veto=N               Remove clusters with size<=N.\n\
+--output=/PATH/To/file.root \n\
+                       Specify output file name. Default same as input file with cl suffix.\n\
 \n\
 The exe will cluster all the hits in a (selected) format and write an output root file.\n\
 A cluster is represented as a tuple<float,float,float,float,uint> \n\
