@@ -39,7 +39,7 @@ vector<Point> AlpideClustering::MakeCluster(Point& p0, vector<Point>& hits) {
     return cluster;
 }
 
-vector<vector<Point>> AlpideClustering::ConstructClusters(unsigned* ColArray, unsigned* RowArray, unsigned N) {
+vector<vector<Point>> AlpideClustering::ConstructClusters(unsigned* ColArray, unsigned* RowArray, unsigned N, int veto) {
     vector<Point> hits;
     for(unsigned i=0; i<N; ++i) 
         hits.emplace_back(Point(ColArray[i], RowArray[i]));
@@ -49,21 +49,22 @@ vector<vector<Point>> AlpideClustering::ConstructClusters(unsigned* ColArray, un
     /* Initially mark a point an anchor. Go over all points left
      * in the initial vector. Find neighbours. Continue
      * the iteration until no new neighbours exist from
-     * remaining points. That makes the cluster isolated. */
+     * remaining points. That makes the cluster isolated. 
+	 * Supply veto to not save clusters with size <= veto. Default 0 */
 
     while(hits.size() > 0) { /* Start a new cluster around hits[0] */
         Point p0 = hits[0];
         QuickErase(hits, 0); 
         auto cluster = MakeCluster(p0, hits);
-        clusters.emplace_back(cluster);
-    }   
+        if(cluster.size() > veto) clusters.emplace_back(cluster); 
+    }
     return clusters;
 }
 
-tuple<double,double,double,double,int> AlpideClustering::FitCluster(const vector<Point>& cluster) {
+tuple<float,float,float,float,int> AlpideClustering::FitCluster(const vector<Point>& cluster) {
     int N = cluster.size();
-    double meanX(0.); double sigmaX; //col
-    double meanY(0.); double sigmaY; //row
+    float meanX(0.); float sigmaX; //col
+    float meanY(0.); float sigmaY; //row
     for(auto& p : cluster) {
         meanX += p.col; sigmaX += p.col*p.col;
         meanY += p.row; sigmaY += p.row*p.row;
@@ -71,7 +72,7 @@ tuple<double,double,double,double,int> AlpideClustering::FitCluster(const vector
     meanX  = meanX/N;
     meanY  = meanY/N;
     
-    /* For sigma=0 can underflow and throw exception */
+    /* For sigma=0 can underflow and throw exception, annoying */
     sigmaX = sigmaX/N - meanX*meanX;
     sigmaX = (sigmaX>0) ? sqrt(sigmaX) : 0; 
     sigmaY = sigmaY/N - meanY*meanY;

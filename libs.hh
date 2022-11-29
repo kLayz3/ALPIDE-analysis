@@ -7,6 +7,7 @@
 #include <cassert>
 #include <exception>
 #include <regex>
+#include <algorithm>
 #include <chrono>
 
 /* -- ROOT -- */
@@ -66,15 +67,35 @@ extern const std::vector<std::string> maskFile{
     "17TB1",  // cooresponds to MOSAIC8.cfg --ALPIDE6
 };
 
-extern const std::string helpString =
-"\nUsage: ./analysis <OPT>\n\
+extern const std::string analyse_help =
+"\nUsage: ./analyse <OPT1> <OPT2> ...\n\
 file=/PATH/TO/FILE/file.root\n\
 --first-event=N   Start from N-th event. Default 0 \n\
---max-events=N    Fix maximum number of events. Default Nentries.\n\
+--max-events=N	  Specify maximum number of events. Default all entries.\n\
 --veto=N          Remove clusters with size<=N.\n\
 \n\
 --raw=X,Y         Plots only raw correlations of AlpideX:AlpideY\n\
 --raw=X           Plots the raw hitmap of AlpideX  \n\
 \n\
-The script will cluster all the hits and make analysis on the clustered hits.\n\n\
+The script can cluster all the hits and make analysis on the clustered hits.\n\n\
 Good luck, have fun <(^.^)>\n\n";
+
+extern const std::string clusterise_help =
+"\nUsage: ./clusterise <OPT1> <OPT2> ...\n\
+file=/PATH/TO/FILE/file.root\n\
+--first-event=N   Start from N-th event. Default 0. \n\
+--max-events=N    Specify maximum number of events. Default all entries.\n\
+--veto=N          Remove clusters with size<=N.\n\
+--output=/PATH/TO/FILE/file.root \n\
+				  Specify output file name. Default same as input file with cl suffix.\n\
+\n\
+The exe will cluster all the hits in a (selected) format and write an output root file.\n\
+A cluster is represented as a tuple<float,float,float,float,uint> \n\
+corresponding to (meanX, meanY, sigmaX, sigmaY, N) of the cluster. N is the size of the cluster.\n\
+Good luck, have fun <(^.^)>\n\n";
+
+/* --raw=0,1         Writes output root tree as a list of branches of vectors of AlpideClustering::Point structures\n\ */
+/* 				  (equivalent to std::pair<uint,uint>) corresponding to all fired pixels in the same cluster. \n\ */
+/* 				  If unspecified, the cluster is represented as a tuple<float,float,float,float,uint> \n\ */
+/* 				  corresponding to (meanX, meanY, sigmaX, sigmaY, N) of the cluster. N is the size of the cluster.\n\ */
+/* 				  File structure can be checked in detail using the parser (to-be-done).\n\ */

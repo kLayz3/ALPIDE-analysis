@@ -1,3 +1,4 @@
+GCC:=g++
 BUILD_DIR:=build
 LIBS_DIR:=include
 
@@ -6,10 +7,10 @@ CFLAGS+=$(shell root-config --cflags)
 
 LDFLAGS:=$(shell root-config --libs)
 
-SRC:=$(wildcard *.cpp)
-OBJ:=$(patsubst %.cpp, $(BUILD_DIR)/%.o, $(SRC))
+SRC:=$(wildcard *.cc)
+OBJ:=$(patsubst %.cc, $(BUILD_DIR)/%.o, $(SRC))
 
-EXE:=analyse
+EXE:=clusterise
 
 MKDIR=[ -d $(@D) ] || mkdir -p $(@D)
 
@@ -17,12 +18,13 @@ all: $(EXE)
 
 $(EXE) : $(OBJ) $(OBJ_LIBS)
 	$(MKDIR)
-	g++ $(LDFLAGS) $< -o $@
+	$(GCC) $(LDFLAGS) $< -o $@
 
 $(OBJ) : $(SRC)
 	$(MKDIR)
-	g++ $(CFLAGS) $< -o $@
+	$(GCC) $(CFLAGS) $< -o $@
 
+.PHONY: clean
 clean:
 	rm -rf $(BUILD_DIR) *~
 	rm -f $(EXE)

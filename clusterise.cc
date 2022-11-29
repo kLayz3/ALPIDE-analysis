@@ -1,8 +1,10 @@
 #include "includes/AlpideClustering.cpp"
+#include "includes/CMDLineParser.cc"
 #include "libs.hh"
 #include "spec.hh"
 
 #define LEN(x) (sizeof x / sizeof *x)
+#define timeNow() std::chrono::high_resolution_clock::now()
 
 typedef uint32_t uint;
 typedef uint64_t ulong;
@@ -23,10 +25,6 @@ UInt_t colM[ALPIDE_NUM+1];
 vector<vector<Point>> clusters[ALPIDE_NUM+1];
 UInt_t clustM[ALPIDE_NUM+1];
 vector<std::tuple<float,float,float,float,uint>> fitVector[ALPIDE_NUM+1];
-
-bool IsHelpArg(int, char**);
-bool ParseCmdLine(const char*, std::string&, int, char**);
-void printProgress(double);
 
 void SetOneBranchAddress(TTree* h101, int x) {
     assert(x<=ALPIDE_NUM && x>=1); 
@@ -65,28 +63,31 @@ void CoarseClusterise(const char* fileName, const char* outFile, ulong firstEven
 	if(veto < 0) veto=0;	
 	
 	TString outputFileName;
-	if(!outFile || LEN(outFile)==0) outputFileName += strtok(fileName, ".").str() + "_coarse_cl.root";
+	if(!outFile || !strcmp(outFile, "NONE")) {
+		string tempS(fileName);
+		outputFileName += tempS.substr(0,tempS.find('.')) + "_coarse_cl.root";
+	}
 	else outputFileName += outFile;
 	TFile *out = new TFile(outputFileName, "RECREATE");
 	TTree *tree = new TTree("h101", "h101");
 	
 	for(int i=1; i<=ALPIDE_NUM; ++i) {
 		tree->Branch(Form("ALPIDE%dClust", i), &fitVector[i]);
-		tree->Branch(Form("ALPIDE%dM", i), &clustM[i];	
+		tree->Branch(Form("ALPIDE%dM", i), &clustM[i]);	
 	}
 	
 	auto t1 = timeNow();
 	SetAllBranchAddress(h101);
 
 	ulong lastEvent = sortEntries(firstEvent, maxEvents, h101);
-	printf("Entries in file: %d\n", h101->GetEntries());
+	printf("Entries in file: %lld\n", h101->GetEntries());
+
     ulong evCounter(0);
-	
     for(ulong evNum = firstEvent; evNum < lastEvent; ++evNum) {
         ++evCounter;
         if(evCounter%100 == 0) {
-            cout << "\rEv#: " << evCounter << " Completed: " << Form("%.1f",(float)evCounter/maxEvents*100) <<"%"<< flush;
-        }
+			printProgress((float)evCounter/maxEvents);
+		}
 		h101->GetEntry(evNum);
 		bool hasCluster(false);
 		
@@ -95,11 +96,11 @@ void CoarseClusterise(const char* fileName, const char* outFile, ulong firstEven
 			if(rowM[i]>1 && rowM[i]==colM[i]) {
 				clusters[i] = ConstructClusters(Col[i], Row[i], rowM[i], veto);
 				clustM[i] = clusters[i].size();
-				if(clustM.size() == 0) continue;
+				if(clustM[i] == 0) continue;
 			
 				/* Part II : Fit and feed */ 
 				for(auto& cluster: clusters[i]) {
-					fitVector.push_back(FitCluster(cluster));
+					fitVector[i].push_back(FitCluster(cluster));
 				}
 				hasCluster = true;
 			}
@@ -120,7 +121,7 @@ auto main(int argc, char* argv[]) -> int {
 	
 	string pStr;
     string fileName("");
-	string outFile("");
+	string outFile("NONE");
     ulong firstEvent(0);
     ulong maxEvents(0);
     int veto(0);
@@ -130,6 +131,9 @@ auto main(int argc, char* argv[]) -> int {
 		cout << clusterise_help; return 0;
 	}
 	if(!ParseCmdLine("output", outFile, argc, argv)) {
+		cout << "No output file specified. Generating a file: \n";
+		string tempS(fileName);
+		cout << tempS.substr(0, tempS.find('.')) + "_coarse_cl.root";
 	}
     
 	if(ParseCmdLine("veto", pStr, argc, argv)) {
@@ -143,7 +147,7 @@ auto main(int argc, char* argv[]) -> int {
     if(ParseCmdLine("first-event", pStr, argc, argv)) {
         try {
             firstEvent = stoul(pStr);
-            printf("Starting from ev#: %d\n", firstEvent);
+            printf("Starting from ev#: %ld\n", firstEvent);
         }
         catch(exception& e) {}
     }
@@ -151,7 +155,7 @@ auto main(int argc, char* argv[]) -> int {
     if(ParseCmdLine("max-events", pStr, argc, argv)) {
         try {
             maxEvents = stoul(pStr);
-            printf("Max events: %d\n", maxEvents);
+            printf("Max events: %ld\n", maxEvents);
         }
         catch(exception& e) {}
     }
@@ -159,30 +163,4 @@ auto main(int argc, char* argv[]) -> int {
 	cout<<endl; return 0;
 }
 
-/* aux functions */
-bool IsHelpArg(int argc, char** argv) {
-    for(int i(1); i<argc; ++i) {
-        if(!strcmp(argv[i], "help") || !strcmp(argv[i], "--help")) return 1;
-    }   
-    return 0;
-}
-
-bool ParseCmdLine(const char* line, string& parsed, int argc, char** argv) {
-    cmatch m;
-    std::regex r("^(--|)([^=]+)[=](.+)$");
-    for(int i(1); i<argc; ++i) {
-        if(regex_match(argv[i], m, r) && !strcmp(m[2].str().c_str(), line)) {
-            parsed = m[3].str(); return 1;
-        }   
-    }   
-    return 0;
-}   
-
-void printProgress(double percentage) {
-    int val = (int)(percentage*100);
-    int lpad =(int)(percentage*BARW);
-    int rpad = BARW-lpad;
-    printf("\r%3d%% [%.*s%*s]",val,lpad,BAR,rpad,"");
-    fflush(stdout);
-}
 
