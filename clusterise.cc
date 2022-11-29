@@ -22,25 +22,28 @@ UInt_t rowM[ALPIDE_NUM+1];
 UInt_t colM[ALPIDE_NUM+1];
 
 /* Write containers */
-vector<vector<Point>> clusters[ALPIDE_NUM+1];
-UInt_t clustM[ALPIDE_NUM+1];
-vector<std::tuple<float,float,float,float,uint>> fitVector[ALPIDE_NUM+1];
+vector<float> uCol[ALPIDE_NUM+1];  // mean X of the clusters
+vector<float> uRow[ALPIDE_NUM+1];  // mean Y of the clusters
+vector<float> sCol[ALPIDE_NUM+1];  // sig  X of the clusters
+vector<float> sRow[ALPIDE_NUM+1];  // sig  Y of the clusters
+vector<uint>  cSize[ALPIDE_NUM+1]; // sizes of each cluster
+/* All containers are sensor specific! */
 
 void SetOneBranchAddress(TTree* h101, int x) {
-    assert(x<=ALPIDE_NUM && x>=1); 
-    h101->SetBranchAddress(Form("ALPIDE%dCOLv", x), Col[x]);
-    h101->SetBranchAddress(Form("ALPIDE%dROWv", x), Row[x]);
-    h101->SetBranchAddress(Form("ALPIDE%dCOL", x), &colM[x]);
-    h101->SetBranchAddress(Form("ALPIDE%dROW", x), &rowM[x]);
+    assert(x<=ALPIDE_NUM && x>=1);
+    h101->SetBranchAddress(TString::Format("ALPIDE%dCOLv", x), Col[x]);
+    h101->SetBranchAddress(TString::Format("ALPIDE%dROWv", x), Row[x]);
+    h101->SetBranchAddress(TString::Format("ALPIDE%dCOL", x), &colM[x]);
+    h101->SetBranchAddress(TString::Format("ALPIDE%dROW", x), &rowM[x]);
 }
 
 void SetAllBranchAddress(TTree* h101) {
 	if(!h101) return;
 	for(int x=1; x<=ALPIDE_NUM; ++x) {
-		h101->SetBranchAddress(Form("ALPIDE%dCOLv", x), Col[x]);
-		h101->SetBranchAddress(Form("ALPIDE%dROWv", x), Row[x]);
-		h101->SetBranchAddress(Form("ALPIDE%dCOL", x), &colM[x]);
-		h101->SetBranchAddress(Form("ALPIDE%dROW", x), &rowM[x]);
+		h101->SetBranchAddress(TString::Format("ALPIDE%dCOLv", x), Col[x]);
+		h101->SetBranchAddress(TString::Format("ALPIDE%dROWv", x), Row[x]);
+		h101->SetBranchAddress(TString::Format("ALPIDE%dCOL", x), &colM[x]);
+		h101->SetBranchAddress(TString::Format("ALPIDE%dROW", x), &rowM[x]);
 	}
 }
 
@@ -62,18 +65,15 @@ void CoarseClusterise(const char* fileName, const char* outFile, ulong firstEven
     TTree* h101 = (TTree*)in->Get("h101");
 	if(veto < 0) veto=0;	
 	
-	TString outputFileName;
-	if(!outFile || !strcmp(outFile, "NONE")) {
-		string tempS(fileName);
-		outputFileName += tempS.substr(0,tempS.find('.')) + "_coarse_cl.root";
-	}
-	else outputFileName += outFile;
-	TFile *out = new TFile(outputFileName, "RECREATE");
+	TFile *out = new TFile(outFile, "RECREATE");
 	TTree *tree = new TTree("h101", "h101");
 	
 	for(int i=1; i<=ALPIDE_NUM; ++i) {
-		tree->Branch(Form("ALPIDE%dClust", i), &fitVector[i]);
-		tree->Branch(Form("ALPIDE%dM", i), &clustM[i]);	
+		tree->Branch(TString::Format("A%dcSize",i), &cSize[i]);
+		tree->Branch(TString::Format("A%duCOL", i), &uCol[i]);
+		tree->Branch(TString::Format("A%duROW", i), &uRow[i]);	
+		tree->Branch(TString::Format("A%dsCOL", i), &sCol[i]);	
+		tree->Branch(TString::Format("A%dsROW", i), &sRow[i]);
 	}
 	
 	auto t1 = timeNow();
@@ -89,26 +89,31 @@ void CoarseClusterise(const char* fileName, const char* outFile, ulong firstEven
 			printProgress((float)evCounter/maxEvents);
 		}
 		h101->GetEntry(evNum);
-		bool hasCluster(false);
+		bool hasCluster(false); /* doesn't fill the file if no cluster identified */
 		
-		/* Part I : Construct clusters from raw data */
-		for(int i(1); i<=ALPIDE_NUM; ++i) {
-			if(rowM[i]>1 && rowM[i]==colM[i]) {
-				clusters[i] = ConstructClusters(Col[i], Row[i], rowM[i], veto);
-				clustM[i] = clusters[i].size();
-				if(clustM[i] == 0) continue;
-			
-				/* Part II : Fit and feed */ 
-				for(auto& cluster: clusters[i]) {
-					fitVector[i].push_back(FitCluster(cluster));
-				}
-				hasCluster = true;
+		/* i loops over all alpides {1,2,3 ... MAX_ALPIDES} */
+		for(int i=1; i<=ALPIDE_NUM; ++i) {
+			if(rowM[i]==0 || rowM[i] != colM[i]) continue;
+			auto clusters = ConstructClusters(Col[i], Row[i], rowM[i], veto);
+			if(clusters.size() == 0) continue;
+
+			for(auto& cluster: clusters) {
+				float uX,uY,sX,sY;
+				uint cN = FitCluster(cluster, uX,uY,sX,sY);
+				uRow[i].push_back(uX); uCol[i].push_back(uY);
+				sRow[i].push_back(sX); sCol[i].push_back(sY);	
+				cSize[i].push_back(cN);
 			}
+			hasCluster = true;
 		}
 		if(hasCluster) tree->Fill();
 		
-		/* clear the fit vector for the next event */
-		for_each(fitVector, fitVector+ALPIDE_NUM, [](auto& vec){vec.clear();});
+		/* clear the vectors for the next event */
+		for_each(uCol, uCol+ALPIDE_NUM, [](auto& vec){vec.clear();});
+		for_each(sCol, sCol+ALPIDE_NUM, [](auto& vec){vec.clear();});
+		for_each(uRow, uRow+ALPIDE_NUM, [](auto& vec){vec.clear();});
+		for_each(sRow, sRow+ALPIDE_NUM, [](auto& vec){vec.clear();});
+		for_each(cSize, cSize+ALPIDE_NUM, [](auto& vec){vec.clear();});
 	}
 
 	tree->Write();
@@ -120,20 +125,19 @@ auto main(int argc, char* argv[]) -> int {
     if(IsHelpArg(argc, argv)) {cout << clusterise_help; return 0;}
 	
 	string pStr;
-    string fileName("");
-	string outFile("NONE");
+    string fileName;
+	string outFile;
     ulong firstEvent(0);
     ulong maxEvents(0);
-    int veto(0);
+    int veto(1);
     
     if(!ParseCmdLine("file", fileName, argc, argv)) {
 		cerr << "No file specified!\n";
 		cout << clusterise_help; return 0;
 	}
 	if(!ParseCmdLine("output", outFile, argc, argv)) {
-		cout << "No output file specified. Generating a file: \n";
-		string tempS(fileName);
-		cout << tempS.substr(0, tempS.find('.')) + "_coarse_cl.root";
+		outFile = fileName.substr(0, fileName.find('.')) + "_coarse_cl.root";
+		cout << "No output file specified. Writing into file: " << outFile << endl;
 	}
     
 	if(ParseCmdLine("veto", pStr, argc, argv)) {
@@ -159,7 +163,8 @@ auto main(int argc, char* argv[]) -> int {
         }
         catch(exception& e) {}
     }
-
+/* void CoarseClusterise(const char* fileName, const char* outFile, ulong firstEvent=0, ulong maxEvents=0, int veto=1) { */
+	CoarseClusterise(fileName.c_str(), outFile.c_str(), firstEvent, maxEvents, veto);
 	cout<<endl; return 0;
 }
 
