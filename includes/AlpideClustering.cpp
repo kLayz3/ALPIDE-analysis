@@ -63,9 +63,9 @@ vector<vector<Point>> AlpideClustering::ConstructClusters(unsigned* ColArray, un
 
 unsigned AlpideClustering::FitCluster(const vector<Point>& cluster, float& uX, float& uY, float& sX, float& sY) {
     int N = cluster.size();
-	if(N==0) return 0;
-    float meanX(0.); float sigmaX; //col
-    float meanY(0.); float sigmaY; //row
+	if(N==0) {uX=0; uY=0; sX=0; sY=0; return 0;}
+    float meanX(0.); float sigmaX(0.); //col
+    float meanY(0.); float sigmaY(0.); //row
     for(auto& p : cluster) {
         meanX += p.col; sigmaX += p.col*p.col;
         meanY += p.row; sigmaY += p.row*p.row;
@@ -85,3 +85,17 @@ unsigned AlpideClustering::FitCluster(const vector<Point>& cluster, float& uX, f
     return N;
 }
 
+unsigned AlpideClustering::FitCluster(const vector<Point>& cluster, float& uX, float& uY) {
+    int N = cluster.size();
+	if(N==0) {uX=0; uY=0; return 0;}
+    float meanX(0.); //col
+    float meanY(0.); //row
+    for(auto& p : cluster) {
+        meanX += p.col; 
+        meanY += p.row;
+    }
+    meanX  = meanX/N;
+    meanY  = meanY/N;	
+	uX = meanX; uY = meanY;
+    return N;
+}

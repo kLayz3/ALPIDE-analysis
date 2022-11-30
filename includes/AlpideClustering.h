@@ -27,6 +27,7 @@ namespace AlpideClustering {
     std::vector<Point> MakeCluster(Point& p0, std::vector<Point>& hits);
     std::vector<std::vector<Point>> ConstructClusters(unsigned* ColArray, unsigned* RowArray, unsigned N, int veto=0); 
     unsigned FitCluster(const std::vector<Point>& cluster, float& uX, float& uY, float& sX, float& sY);
+    unsigned FitCluster(const std::vector<Point>& cluster, float& uX, float& uY);
 }
 
 #endif /* AlpideClustering.h */

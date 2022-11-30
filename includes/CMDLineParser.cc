@@ -3,9 +3,6 @@
 #include <string>
 #include <iostream>
 
-#define PBARSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
-#define PBARW 60
-
 using namespace std;
 
 bool IsHelpArg(int argc, char** argv) {
@@ -27,12 +24,6 @@ bool ParseCmdLine(const char* line, string& parsed, int argc, char** argv) {
     return 0;
 }
 
-void printProgress(float percentage) {
-    int val = (int)(percentage*100);
-    int lpad =(int)(percentage*PBARW);
-    int rpad = PBARW-lpad;
-    printf("\r%3d%% [%.*s%*s]",val,lpad,PBARSTR,rpad,"");
-    fflush(stdout);
-}
+
 
 
