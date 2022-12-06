@@ -2,13 +2,19 @@
 #include <regex>
 #include <string>
 #include <iostream>
+#include <vector>
+#include <unordered_set>
+#include <algorithm>
 
 using namespace std;
 
-bool IsHelpArg(int argc, char** argv) {
+bool IsCmdArg(const char* line, int argc, char** argv) {
+	char *line1 = (char*)malloc(strlen(line)+3);
+	strcpy(line1, "--");
+	strcat(line1, line);
     for(int i(1); i<argc; ++i) {
-        if(!strcmp(argv[i], "help") || !strcmp(argv[i], "--help")) return 1;
-    }   
+        if(!strcmp(argv[i], line) || !strcmp(argv[i], line1)) return 1;
+    }
     return 0;
 }
 
@@ -23,6 +29,33 @@ bool ParseCmdLine(const char* line, string& parsed, int argc, char** argv) {
     }   
     return 0;
 }
+
+void RemoveCharsFromString(string& str, string chars) {
+	for(char c : chars) {
+		str.erase(std::remove(str.begin(), str.end(), c), str.end());
+	}
+}
+
+vector<string> SplitStringToVector(const string& str, char delim) {
+	std::stringstream iss(str);
+	vector<string> parts;
+	string part;
+	while(std::getline(iss, part, delim)) {
+		parts.push_back(part);
+	}
+	return parts;
+}
+
+unordered_set<string> SplitStringToSet(const string& str, char delim) {
+	std::stringstream iss(str);
+	unordered_set<string> parts;
+	string part;
+	while(std::getline(iss, part, delim)) {
+		parts.insert(part);
+	}
+	return parts;
+}
+
 
 
 

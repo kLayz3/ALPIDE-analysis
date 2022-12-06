@@ -12,20 +12,19 @@ LIBS:=$(LIBS) $(shell root-config --libs)
 SRC:=$(wildcard *.cc)
 OBJ:=$(patsubst %.cc, $(BUILD_DIR)/%.o, $(SRC))
 
-EXE:=clusterise
+EXE:=$(patsubst %.cc, %, $(SRC))
 
 MKDIR=[ -d $(@D) ] || mkdir -p $(@D)
-
 all: $(EXE)
 obj: $(OBJ)
 
 $(EXE) : $(OBJ)
 	$(MKDIR)
-	$(GCC) $(LDFLAGS) $< -o $@ $(LIBS)
+	$(GCC) $(LDFLAGS) $(patsubst %, $(BUILD_DIR)/%.o, $@) -o $@ $(LIBS)
 
 $(OBJ) : $(SRC)
 	$(MKDIR)
-	$(GCC) $(CFLAGS) $< -o $@
+	$(GCC) $(CFLAGS) $(patsubst $(BUILD_DIR)/%.o, %.cc ,$@) -o $@
 
 .PHONY: clean
 clean:

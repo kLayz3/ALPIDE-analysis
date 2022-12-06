@@ -12,9 +12,9 @@ typedef uint64_t ulong;
 extern const std::string clusterise_help;
 
 using namespace std;
+using namespace AlpideClustering;
 using std::chrono::duration_cast;
 using std::chrono::seconds;
-using namespace AlpideClustering;
 
 void SetOneBranchAddress(TTree* h101, int x, uint* Col, uint* Row, uint& rowM, uint& colM) {
     assert(x<=ALPIDE_NUM && x>=1);
@@ -46,7 +46,7 @@ ulong SortEntries(ulong& firstEvent, ulong& maxEvents, TTree* h101) {
 void RawClusterise(const char* fileName, const char* outFile = nullptr, ulong firstEvent=0, ulong maxEvents=0, int veto=1) {}
 */
 
-void CoarseClusterise(const char* fileName, const char* outFile, ulong firstEvent=0, ulong maxEvents=0, int veto=1) {	
+void CoarseClusterise(const char* fileName, const char* outFile, ulong firstEvent=0, ulong maxEvents=0, int veto=1, const std::bitset<ALPIDE_NUM+1> mandatory = {0}) {	
 	TFile* in = new TFile(fileName,"READ");
     if(!in || in->IsZombie()) {cerr << "Can't open rootfile with name: " << fileName << "\n"; exit(EXIT_FAILURE);}
     TTree* h101 = static_cast<TTree*>(in->Get("h101"));
@@ -69,6 +69,7 @@ void CoarseClusterise(const char* fileName, const char* outFile, ulong firstEven
 	
 	TFile *out = new TFile(outFile, "RECREATE");
 	TTree *tree = new TTree("h101", "h101");
+	
 	/* MARK: outward branches */
 	tree->Branch("CL_NUM", &cNum);
 	tree->Branch("ALPIDE_ID", AlpideID, "ALPIDE_ID[CL_NUM]/i");
@@ -84,22 +85,26 @@ void CoarseClusterise(const char* fileName, const char* outFile, ulong firstEven
     ulong evCounter(0);
     for(ulong evNum = firstEvent; evNum < lastEvent; ++evNum) {
         ++evCounter; if(evCounter%100 == 0) PrintProgress((float)evCounter/maxEvents);
-		
 		h101->GetEntry(evNum);
-		uint clIndex(0);
-
-		/* MARK: clustering, i loops over all alpides {1,2,3 ... MAX_ALPIDES} */
+	
+		cNum = 0; 
+		bitset<ALPIDE_NUM+1> b = mandatory;
+		
+		/* MARK: clustering, i loops over all alpides {1,2,3 ... ALPIDE_NUM} */
 		for(int i=1; i<=ALPIDE_NUM; ++i) {
 			if(rowM[i]==0 || rowM[i] != colM[i]) continue;
 			auto clusters = ConstructClusters(Col[i], Row[i], rowM[i], veto);
+			if(clusters.size() == 0) continue;
+
+			b[i]=0;
 			for(auto& cluster : clusters) {
-				cSize[clIndex] = FitCluster(cluster, uCol[clIndex], uRow[clIndex]); 
-				AlpideID[clIndex] = i;
-				++clIndex;
-			} if(clIndex>0) {
-				cNum = clIndex;
-				tree->Fill();
+				cSize[cNum] = FitCluster(cluster, uCol[cNum], uRow[cNum]); 
+				AlpideID[cNum] = i;
+				++cNum;
 			}
+		}
+		if(cNum>0 && b.none()) {
+			tree->Fill();
 		}
 	}
 
@@ -113,7 +118,7 @@ void CoarseClusterise(const char* fileName, const char* outFile, ulong firstEven
 }
 
 auto main(int argc, char* argv[]) -> int {
-    if(IsHelpArg(argc, argv)) {cout << clusterise_help; return 0;}
+    if(IsCmdArg("help", argc, argv)) {cout << clusterise_help; return 0;}
 	
 	string pStr;
     string fileName;
@@ -121,6 +126,7 @@ auto main(int argc, char* argv[]) -> int {
     ulong firstEvent(0);
     ulong maxEvents(0);
     int veto(1);
+	std::bitset<ALPIDE_NUM+1> mandatory{0};
     
     if(!ParseCmdLine("file", fileName, argc, argv)) {
 		cerr << "No file specified!\n";
@@ -154,8 +160,29 @@ auto main(int argc, char* argv[]) -> int {
         }
         catch(exception& e) {}
     }
-	/* void CoarseClusterise(const char* fileName, const char* outFile, ulong firstEvent=0, ulong maxEvents=0, int veto=1) { */
-	CoarseClusterise(fileName.c_str(), outFile.c_str(), firstEvent, maxEvents, veto);
+	if(ParseCmdLine("dets", pStr, argc, argv)) {
+		RemoveCharsFromString(pStr, "[({})]");
+		if(pStr=="all" || pStr=="a") {
+			mandatory.set(); 
+			mandatory[0] = 0; // sets all to 1
+		}
+		else {
+			auto parts = SplitStringToSet(pStr, ',');
+			for(string part : parts) {
+				try {
+					int x = stoi(part);
+					if(x>ALPIDE_NUM || x<=0) throw std::runtime_error("Out of Bounds.");
+					mandatory[x] = 1;
+				}
+				catch(exception& e) {cout << "In " << __PRETTY_FUNCTION__ << ": " << e.what() << endl;}
+			}
+		}
+	}
+
+
+	/* ### ALPIDE_NUM is NOT defined at runtime! Once it's changed, the binary has to be recompiled. ### */
+	
+	CoarseClusterise(fileName.c_str(), outFile.c_str(), firstEvent, maxEvents, veto, mandatory);
 	cout<<endl; return 0;
 }
 

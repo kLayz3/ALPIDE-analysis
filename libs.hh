@@ -1,14 +1,5 @@
 /* -- C++ -- */
-#include <vector>
-#include <string>
-#include <cstdio>
-#include <iostream>
-#include <fstream>
-#include <cassert>
-#include <exception>
-#include <regex>
-#include <algorithm>
-#include <chrono>
+#include <bits/stdc++.h>
 
 /* -- ROOT -- */
 #include "Riostream.h"
@@ -74,8 +65,9 @@ file=/PATH/TO/FILE/file.root\n\
 --max-events=N	  Specify maximum number of events. Default all entries.\n\
 --veto=N          Remove clusters with size<=N.\n\
 \n\
---raw=X,Y         Plots only raw correlations of AlpideX:AlpideY\n\
---raw=X           Plots the raw hitmap of AlpideX  \n\
+--raw=X,Y         Plots only raw correlations of AlpideX:AlpideY.\n\
+--raw=X           Plots the raw hitmap of AlpideX.\n\
+--cal             Will do the calibration process.\n\
 \n\
 The script can cluster all the hits and make analysis on the clustered hits.\n\n\
 Good luck, have fun <(^.^)>\n\n";
@@ -83,11 +75,13 @@ Good luck, have fun <(^.^)>\n\n";
 extern const std::string clusterise_help =
 "\nUsage: ./clusterise <OPT1> <OPT2> ...\n\
 file=/PATH/TO/file.root\n\
---first-event=N        Start from N-th event. Default 0. \n\
---max-events=N         Specify maximum number of events. Default all entries.\n\
---veto=N               Remove clusters with size<=N.\n\
+--first-event=N         Start from N-th event. Default 0. \n\
+--max-events=N          Specify maximum number of events. Default all entries.\n\
+--veto=N                Only consider clusters with size>N.\n\
 --output=/PATH/To/file.root \n\
-                       Specify output file name. Default same as input file with cl suffix.\n\
+                        Specify output file name. Default same as input file with cl suffix.\n\
+--dets=[d1,d2,..]       Condition to only write events which have clusters every specified detectors.\n\
+      =all				Equivalent to dets=1, 2, ... ALPIDE_NUM. Every event must contain a cluster in all detectors.\n\
 \n\
 The exe will cluster all the hits in a (selected) format and write an output root file.\n\
 A cluster is represented as a tuple<float,float,float,float,uint> \n\
