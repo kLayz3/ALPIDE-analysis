@@ -4,8 +4,11 @@ To start, clone the repo and run make in the main directory.
 Executables existing so far are
 - clusterise
 - analyse
+
+Default arguments are in () brackets, and user arguments are in [].
 ```sh
 ./clusterize --file=FILE_IN.root --output=FILE_OUT.root --veto=[N](1) --firstEvent=[fE](0) --max-events=[mE](0) --dets=[{x_i}]()
+
 file=/PATH/TO/file.root     Select file.
 --first-event=N             Start from N-th event. Default 0. 
 --max-events=N              Specify maximum number of events. Default all entries.
@@ -22,6 +25,7 @@ corresponding to (meanX, meanY, N) of the cluster. N is the size of the cluster.
 ```
 ```sh
 ./analyse --file=FILE_IN.root --output=FILE_OUT.root --veto=[N](1) --firstEvent=[fE](0) --max-events=[mE](0) --dets=[{x_i}]()
+
 file=/PATH/TO/FILE/file.root
 --first-event=N             Start from N-th event. Default 0. 
 --max-events=N	            Specify maximum number of events. Default all entries.
