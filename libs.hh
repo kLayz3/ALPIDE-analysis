@@ -74,18 +74,19 @@ Good luck, have fun <(^.^)>\n\n";
 
 extern const std::string clusterise_help =
 "\nUsage: ./clusterise <OPT1> <OPT2> ...\n\
-file=/PATH/TO/file.root\n\
---first-event=N         Start from N-th event. Default 0. \n\
---max-events=N          Specify maximum number of events. Default all entries.\n\
---veto=N                Only consider clusters with size>N.\n\
---output=/PATH/To/file.root \n\
-                        Specify output file name. Default same as input file with cl suffix.\n\
---dets=[d1,d2,..]       Condition to only write events which have clusters every specified detectors.\n\
-      =all				Equivalent to dets=1, 2, ... ALPIDE_NUM. Every event must contain a cluster in all detectors.\n\
+file=/PATH/TO/file.root     Select file.\n\
+--first-event=N             Start from N-th event. Default 0. \n\
+--max-events=N              Specify maximum number of events. Default all entries.\n\
+--veto=N                    Only consider clusters with size>N.\n\
+--output=/PATH/TO/OUT.root  Write clusterised data in this file. Default $(inputName)_coarse_cl.root.\n\
+                            Specify output file name. Default same as input file with cl suffix.\n\
+--dets=[d1,d2,..]           Condition to only write events which have clusters every specified detectors.\n\
+      =all				    Equivalent to dets=1, 2, ... ALPIDE_NUM. Every event must contain a cluster in all detectors.\n\
+--help                      Print this message to stdout. \n\
 \n\
 The exe will cluster all the hits in a (selected) format and write an output root file.\n\
-A cluster is represented as a tuple<float,float,float,float,uint> \n\
-corresponding to (meanX, meanY, sigmaX, sigmaY, N) of the cluster. N is the size of the cluster.\n\
+A cluster is represented as a tuple<float,float,uint> \n\
+corresponding to (meanX, meanY, N) of the cluster. N is the size of the cluster.\n\
 Good luck, have fun <(^.^)>\n\n";
 
 /* --raw=0,1         Writes output root tree as a list of branches of vectors of AlpideClustering::Point structures\n\ */
