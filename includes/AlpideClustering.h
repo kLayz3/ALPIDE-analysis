@@ -31,4 +31,3 @@ namespace AlpideClustering {
 }
 
 #endif /* AlpideClustering.h */
-

@@ -56,7 +56,7 @@ vector<vector<Point>> AlpideClustering::ConstructClusters(unsigned* ColArray, un
         Point p0 = hits[0];
         QuickErase(hits, 0); 
         auto cluster = MakeCluster(p0, hits);
-        if(cluster.size() > veto) clusters.emplace_back(cluster); 
+        if((int)cluster.size() > veto) clusters.emplace_back(cluster); 
     }
     return clusters;
 }

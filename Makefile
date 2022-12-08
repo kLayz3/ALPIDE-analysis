@@ -1,30 +1,39 @@
 GCC:=g++
+SRC_DIR:=src
+INC_DIR:=includes
 BUILD_DIR:=build
-LIBS:=-Lincludes
 
 CFLAGS:=-c -g -Wall 
 CFLAGS+=$(shell root-config --cflags)\
-		$(shell root-config --auxcflags)
+		$(shell root-config --auxcflags)\
+		-I$(INC_DIR) -I.
 
 LDFLAGS:=$(shell root-config --ldflags)
-LIBS:=$(LIBS) $(shell root-config --libs)
+ROOTLIBS:=$(shell root-config --libs)
 
-SRC:=$(wildcard *.cc)
-OBJ:=$(patsubst %.cc, $(BUILD_DIR)/%.o, $(SRC))
+SRC:=$(wildcard $(SRC_DIR)/*.cc)
+INC:=$(wildcard $(INC_DIR)/*.cxx)
 
-EXE:=$(patsubst %.cc, %, $(SRC))
+OBJ:=$(patsubst $(SRC_DIR)/%.cc,  $(BUILD_DIR)/%.o,   $(SRC))\
+	 $(patsubst $(INC_DIR)/%.cxx, $(BUILD_DIR)/%.oxx, $(INC))
 
-MKDIR=[ -d $(@D) ] || mkdir -p $(@D)
+EXE:=$(patsubst $(SRC_DIR)/%.cc, %, $(SRC))
+
+MKDIR = mkdir -p $(@D)
+
+.PHONY: all
 all: $(EXE)
-obj: $(OBJ)
 
 $(EXE) : $(OBJ)
-	$(MKDIR)
-	$(GCC) $(LDFLAGS) $(patsubst %, $(BUILD_DIR)/%.o, $@) -o $@ $(LIBS)
+	$(GCC) $(LDFLAGS) $(BUILD_DIR)/$@.o $(BUILD_DIR)/*.oxx -o $@ $(ROOTLIBS)
 
-$(OBJ) : $(SRC)
+$(BUILD_DIR)/%.o : $(SRC_DIR)/%.cc
 	$(MKDIR)
-	$(GCC) $(CFLAGS) $(patsubst $(BUILD_DIR)/%.o, %.cc ,$@) -o $@
+	$(GCC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/%.oxx : $(INC_DIR)/%.cxx
+	$(MKDIR)
+	$(GCC) $(CFLAGS) $< -o $@
 
 .PHONY: clean
 clean:
