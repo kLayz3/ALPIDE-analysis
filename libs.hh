@@ -48,7 +48,7 @@
 #include "TVectorT.h"
 #include "Rtypes.h"
 
-extern const std::vector<std::string> maskFile{
+inline extern const std::vector<std::string> maskFile{
     "",       // there's no ALPIDE0
     "16BC8",  // corresponds to MOSAIC0.cfg --ALPIDE1
     "12TB5",  // corresponds to MOSAIC1.cfg --ALPIDE2
@@ -58,21 +58,8 @@ extern const std::vector<std::string> maskFile{
     "17TB1",  // cooresponds to MOSAIC8.cfg --ALPIDE6
 };
 
-extern const std::string analyse_help =
-"\nUsage: ./analyse <OPT1> <OPT2> ...\n\
-file=/PATH/TO/FILE/file.root\n\
---first-event=N   Start from N-th event. Default 0 \n\
---max-events=N	  Specify maximum number of events. Default all entries.\n\
---veto=N          Remove clusters with size<=N.\n\
-\n\
---raw=X,Y         Plots only raw correlations of AlpideX:AlpideY.\n\
---raw=X           Plots the raw hitmap of AlpideX.\n\
---cal             Will do the calibration process.\n\
-\n\
-The script can cluster all the hits and make analysis on the clustered hits.\n\n\
-Good luck, have fun <(^.^)>\n\n";
 
-extern const std::string clusterise_help =
+inline extern const std::string clusterise_help =
 "\nUsage: ./clusterise <OPT1> <OPT2> ...\n\
 file=/PATH/TO/file.root     Select file.\n\
 --first-event=N             Start from N-th event. Default 0. \n\
@@ -89,8 +76,29 @@ A cluster is represented as a tuple<float,float,uint> \n\
 corresponding to (meanX, meanY, N) of the cluster. N is the size of the cluster.\n\
 Good luck, have fun <(^.^)>\n\n";
 
-/* --raw=0,1         Writes output root tree as a list of branches of vectors of AlpideClustering::Point structures\n\ */
-/* 				  (equivalent to std::pair<uint,uint>) corresponding to all fired pixels in the same cluster. \n\ */
-/* 				  If unspecified, the cluster is represented as a tuple<float,float,float,float,uint> \n\ */
-/* 				  corresponding to (meanX, meanY, sigmaX, sigmaY, N) of the cluster. N is the size of the cluster.\n\ */
-/* 				  File structure can be checked in detail using the parser (to-be-done).\n\ */
+inline extern const std::string calibrate_help =
+"\nUsage: ./calibrate <OPT1> <OPT2> ...\n\
+file=/PATH/TO/file.root     Select file.\n\
+--first-event=N             Start from N-th event. Default 0. \n\
+--max-events=N              Specify maximum number of events. Default all entries.\n\
+--output=/PATH/TO/OUT.root  Write clusterised data in this file. Default $(inputName)_coarse_cl.root.\n\
+                            Specify output file name. Default same as input file with cl suffix.\n\
+--help                      Print this message to stdout. \n\
+\n\
+The exe will calibrate the detectors and write an output root file.\n\
+Calibration of (dx, dy) for each alpide with reference to the first ALPIDE is stored in the\n\
+aCol, bCol, aRow, bRow and corresponding sigma branches. 'a' is the slope of the fit line and 'b' the offset.\n\
+Good luck, have fun <(^.^)>\n\n";
+
+inline extern const std::string analyse_help =
+"\nUsage: ./analyse <OPT1> <OPT2> ...\n\
+file=/PATH/TO/FILE/file.root\n\
+--first-event=N   Start from N-th event. Default 0 \n\
+--max-events=N	  Specify maximum number of events. Default all entries.\n\
+\n\
+--hitmap=X         Plots the hitmap of AlpideX.\n\
+--hitmap		   Plots the hitmaps of all Alpides.\n\
+\n\
+This exe can plot the hitmaps of all or specific detector.\n\n\
+Good luck, have fun <(^.^)>\n\n";
+

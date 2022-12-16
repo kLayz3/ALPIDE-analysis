@@ -16,32 +16,188 @@ using namespace AlpideClustering;
 using std::chrono::duration_cast;
 using std::chrono::seconds;
 
-/* Read containers */
-uint cNum;
-uint AlpideID[MAX_CLUSTERS];
-uint cSize[MAX_CLUSTERS];
-float uCol[MAX_CLUSTERS];
-float uRow[MAX_CLUSTERS];
+void SetOneBranchAddressRaw(TTree* h101, int x, uint* Col, uint* Row, uint& colM, uint& rowM, uint& tHi, uint& tLo) {
+    assert(x<=ALPIDE_NUM && x>=1);
+    h101->SetBranchAddress(TString::Format("ALPIDE%dCOLv", x), Col);
+    h101->SetBranchAddress(TString::Format("ALPIDE%dROWv", x), Row);
+    h101->SetBranchAddress(TString::Format("ALPIDE%dCOL", x), &colM);
+    h101->SetBranchAddress(TString::Format("ALPIDE%dROW", x), &rowM);
+    h101->SetBranchAddress(TString::Format("ALPIDE%dT_HI", x), &tHi);
+    h101->SetBranchAddress(TString::Format("ALPIDE%dT_LO", x), &tLo);
+}
 
-void SetAllBranchAddress(TTree* h101, uint& cNum, uint* AlpideID, uint* cSize, float* uCol, float* uRow) {
+void SetAllBranchAddressRaw(TTree* h101, uint (*Col)[MAX_HITS], uint (*Row)[MAX_HITS], uint* colM, uint* rowM, uint& tHi, uint& tLo) {
+	if(!h101 || h101->IsZombie()) return;
+	for(int x=1; x<=ALPIDE_NUM; ++x) {
+		h101->SetBranchAddress(TString::Format("ALPIDE%dCOLv", x), Col[x]);
+		h101->SetBranchAddress(TString::Format("ALPIDE%dROWv", x), Row[x]);
+		h101->SetBranchAddress(TString::Format("ALPIDE%dCOL", x), &colM[x]);
+		h101->SetBranchAddress(TString::Format("ALPIDE%dROW", x), &rowM[x]);
+	}
+	h101->SetBranchAddress("ALPIDE1T_HI", &tHi);
+	h101->SetBranchAddress("ALPIDE1T_LO", &tLo);
+}
+
+void SetAllBranchAddressClust(TTree* h101, uint& cNum, uint* AlpideID, uint* cSize, float* uCol, float* uRow) {
 	if(!h101 || h101->IsZombie()) return;
 	h101->SetBranchAddress("CL_NUM", &cNum);
 	h101->SetBranchAddress("ALPIDE_ID", AlpideID);
 	h101->SetBranchAddress("CL_uCOL", uCol);
 	h101->SetBranchAddress("CL_uROW", uRow);
-} 
+}
 
 void RawHitMap(const char* fileName, int x, ulong firstEvent=0, ulong maxEvents=0) {
+	assert(x>=1 && x<=ALPIDE_NUM);
+    TApplication* app = new TApplication("myApp", 0, 0);
+    TFile* in = new TFile(fileName,"READ");
+    if(!in || in->IsZombie()) {cerr << "Can't open rootfile with name: " << fileName << "\n"; exit(EXIT_FAILURE);}
+    TTree* h101 = dynamic_cast<TTree*>(in->Get("h101"));
+    auto t1 = timeNow();
+	
+	/* Read Containers */
+	constexpr size_t MALLOC_SIZE = MAX_HITS * sizeof(uint);
+	uint colM = 0; uint rowM = 0; 
+	uint tHi, tLo;
+	uint* colV = (uint*)malloc(MALLOC_SIZE);
+	uint* rowV = (uint*)malloc(MALLOC_SIZE);
+	SetOneBranchAddressRaw(h101, x, colV, rowV, colM, rowM, tHi, tLo);
+	
+	TH2D* hRawHit = new TH2D(TString::Format("Raw Hitmap ALPIDE%d", x), TString::Format("Raw Hitmap ALPIDE%d", x), 1024,0,1024,512,0,512);  
+
+	ulong lastEvent = SortEntries(firstEvent, maxEvents, h101);
+	printf("Entries in file: %lld\n", h101->GetEntries());
+    ulong evCounter{0};
+	
+    for(ulong evNum = firstEvent; evNum < lastEvent; ++evNum) {
+        ++evCounter; if(evCounter%100 == 0) PrintProgress((float)evCounter/maxEvents);		
+		h101->GetEntry(evNum);
+		if(colM == 0 || colM != rowM) continue;
+		for(int i=0; i<colM; ++i) {
+			hRawHit->Fill(colV[i], rowV[i]);
+		}
+	}
+	hRawHit->Draw("colz");
+	
+	auto t2 = timeNow();
+    cout << "\nTime taken: " << duration_cast<seconds>(t2-t1).count() << "s\n";
+	app->Run();
+
+	in->Close();
+}
+
+void RawHitMapAll(const char* fileName, ulong firstEvent=0, ulong maxEvents=0) {
+	TApplication* app = new TApplication("myApp", 0, 0);
+    TFile* in = new TFile(fileName,"READ");
+    if(!in || in->IsZombie()) {cerr << "Can't open rootfile with name: " << fileName << "\n"; exit(EXIT_FAILURE);}
+    TTree* h101 = dynamic_cast<TTree*>(in->Get("h101"));
+    auto t1 = timeNow();
+	
+	/* Read Containers */
+	uint tHi, tLo;
+	uint colV[ALPIDE_NUM+1][MAX_HITS];
+	uint rowV[ALPIDE_NUM+1][MAX_HITS];
+	uint colM[ALPIDE_NUM+1];
+	uint rowM[ALPIDE_NUM+1];
+	
+	SetAllBranchAddressRaw(h101, colV, rowV, colM, rowM, tHi, tLo);
+	
+	TH2D* hRawHit[ALPIDE_NUM+1];
+	TCanvas *canvas[ALPIDE_NUM+1];
+	for(int x=1; x<=ALPIDE_NUM; ++x) {
+		hRawHit[x]  = new TH2D(TString::Format("Raw Hitmap ALPIDE%d", x), TString::Format("Raw Hitmap ALPIDE%d", x), 1024,0,1024,512,0,512);  
+		canvas[x] = new TCanvas(TString::Format("Raw Hitmap ALPIDE%d", x), TString::Format("Raw Hitmap ALPIDE%d", x), 1200,1200);
+	}
+	ulong lastEvent = SortEntries(firstEvent, maxEvents, h101);
+	printf("Entries in file: %lld\n", h101->GetEntries());
+    ulong evCounter{0};
+    
+    for(ulong evNum = firstEvent; evNum < lastEvent; ++evNum) {
+        ++evCounter; if(evCounter%100 == 0) PrintProgress((float)evCounter/maxEvents);		
+		h101->GetEntry(evNum);
+		for(int x=1; x<=ALPIDE_NUM; ++x) {
+			if(colM[x] == 0 || colM[x] != rowM[x]) continue;
+			for(int i=0; i<colM[x]; ++i) {
+				hRawHit[x]->Fill(colV[x][i], rowV[x][i]);
+			}
+		}
+	}
+	for(int x=1; x<=ALPIDE_NUM; ++x) {
+		canvas[x]->cd();
+		hRawHit[x]->Draw("colz");
+	}
+
+	auto t2 = timeNow();
+    cout << "\nTime taken: " << duration_cast<seconds>(t2-t1).count() << "s\n";
+
+	app->Run();
+	in->Close();
+}
+
+void RawCorrelation(const char* fileName, int x, int y, ulong firstEvent, ulong maxEvents) {
+	assert(x>=1 && x<=ALPIDE_NUM && y>=1 && y<=ALPIDE_NUM && x!=y);
+	TApplication* app = new TApplication("myApp", 0, 0);
+    TFile* in = new TFile(fileName,"READ");
+    if(!in || in->IsZombie()) {cerr << "Can't open rootfile with name: " << fileName << "\n"; exit(EXIT_FAILURE);}
+    TTree* h101 = dynamic_cast<TTree*>(in->Get("h101"));
+    auto t1 = timeNow();
+
+	uint tHi[MAX_HITS], tLo[MAX_HITS];
+	uint colV[ALPIDE_NUM+1][MAX_HITS];
+	uint rowV[ALPIDE_NUM+1][MAX_HITS];
+	uint colM[ALPIDE_NUM+1];
+	uint rowM[ALPIDE_NUM+1];
+
+	SetOneBranchAddressRaw(h101, x, colV[x], rowV[x], colM[x], rowM[x], tHi[x], tLo[x]);
+	SetOneBranchAddressRaw(h101, y, colV[y], rowV[y], colM[y], rowM[y], tHi[y], tLo[y]);
+	
+	TH2D* hColCorr = new TH2D(TString::Format("Column corr ALPIDE%d.vs.%d", y, x), TString::Format("Column corr ALPIDE%d.vs.%d", y,x), 1024,0,1024,1024,0,1024);
+	TH2D* hRowCorr = new TH2D(TString::Format("Row corr ALPIDE%d.vs.%d", y, x), TString::Format("Row corr ALPIDE%d.vs.%d", y,x), 512,0,512,512,0,512);
+	
+	ulong lastEvent = SortEntries(firstEvent, maxEvents, h101);
+	printf("Entries in file: %lld\n", h101->GetEntries());
+    ulong evCounter{0};
+    
+    for(ulong evNum = firstEvent; evNum < lastEvent; ++evNum) {
+		++evCounter; if(evCounter%100 == 0) PrintProgress((float)evCounter/maxEvents);		
+		h101->GetEntry(evNum);
+		if(colM[x] == 0 || colM[y] == 0 || colM[x]!=rowM[x] || colM[y]!=rowM[y]) continue;
+		for(int i=0; i<colM[x]; ++i) {
+			for(int j=0; j<colM[y]; ++j) {
+				hColCorr->Fill(colV[x][i], colV[y][j]);
+				hRowCorr->Fill(rowV[x][i], rowV[y][j]);
+			}
+		}
+	}
+
+	TCanvas* canvas = new TCanvas(TString::Format("Raw corr ALPIDE%d.vs.%d", y,x), TString::Format("Raw corr ALPIDE%d.vs.%d", y,x), 1200,1600);
+	canvas->Divide(1,2);
+	canvas->cd(1); hColCorr->Draw("colz");
+	canvas->cd(2); hRowCorr->Draw("colz");
+	
+	auto t2 = timeNow();
+    cout << "\nTime taken: " << duration_cast<seconds>(t2-t1).count() << "s\n";
+
+	app->Run();
+	in->Close();
+}
+
+void ClustHitMap(const char* fileName, int x, ulong firstEvent=0, ulong maxEvents=0) {
     assert(x>=1 && x<=ALPIDE_NUM);
     TApplication* app = new TApplication("myApp", 0, 0);
     TFile* in = new TFile(fileName,"READ");
     if(!in || in->IsZombie()) {cerr << "Can't open rootfile with name: " << fileName << "\n"; exit(EXIT_FAILURE);}
-    TTree* h101 = static_cast<TTree*>(in->Get("h101"));
+    TTree* h101 = dynamic_cast<TTree*>(in->Get("h101"));
     auto t1 = timeNow();
 
-    SetAllBranchAddress(h101, cNum, AlpideID, cSize, uCol, uRow);
+	/* Read containers */
+	uint cNum;
+	uint AlpideID[MAX_CLUSTERS];
+	uint cSize[MAX_CLUSTERS];
+	float uCol[MAX_CLUSTERS];
+	float uRow[MAX_CLUSTERS];
+	SetAllBranchAddressClust(h101, cNum, AlpideID, cSize, uCol, uRow);
 
-    TH2D* hRawHit = new TH2D(TString::Format("Raw Hitmap ALPIDE%d", x), TString::Format("Raw Hitmap ALPIDE%d", x), 1024,0,1024,512,0,512);  
+    TH2D* hRawHit = new TH2D(TString::Format("Clust Hitmap ALPIDE%d", x), TString::Format("Clust Hitmap ALPIDE%d", x), 1024,0,1024,512,0,512);  
 
 	ulong lastEvent = SortEntries(firstEvent, maxEvents, h101);
 	printf("Entries in file: %lld\n", h101->GetEntries());
@@ -65,213 +221,77 @@ void RawHitMap(const char* fileName, int x, ulong firstEvent=0, ulong maxEvents=
 
 	in->Close();
 }
-	
-void CalibrateAll(const char* fileName, const char* outFile, ulong firstEvent=0, ulong maxEvents=0) {
-	/* File better contain info from all the possible alpides */ 
-	TFile* in = new TFile(fileName,"READ");
-	if(!in || in->IsZombie()) {cerr << "Can't open rootfile with name: " << fileName << "\n"; exit(EXIT_FAILURE);}
-    TApplication* app = new TApplication("myApp", 0, 0);
-	TTree* h101 = static_cast<TTree*>(in->Get("h101"));
 
-	TFile* out = new TFile(outFile, "RECREATE");
-	
-	auto t1 = timeNow();
-	TH2D* HitMapR[ALPIDE_NUM+1];
-	TH2D* HitMapC[ALPIDE_NUM+1];
-	TH1D* HitMapPC[ALPIDE_NUM+1][1024];
-	TH1D* HitMapPR[ALPIDE_NUM+1][512];
-	TGraph* colCal[ALPIDE_NUM+1];
-	TGraph* colCalRes[ALPIDE_NUM+1];
-	TGraph* rowCal[ALPIDE_NUM+1];
-	TGraph* rowCalRes[ALPIDE_NUM+1];
-	TF1* rowLine;
-	TF1* colLine;
-	for(int i=1; i<=ALPIDE_NUM; i++) {
-		HitMapR[i] = new TH2D(TString::Format("HitMapR%d",i),TString::Format("HitMapR%d",i),512,0,512,512,0,512);
-		HitMapC[i] = new TH2D(TString::Format("HitMapC%d",i),TString::Format("HitMapC%d",i),1024,0,1024,1024,0,1024);
-		colCal[i] = new TGraph();
-		rowCal[i] = new TGraph();
-		colCal[i]->SetNameTitle(TString::Format("colCal%i",i));
-		rowCal[i]->SetNameTitle(TString::Format("rowCal%i",i));
-		colCal[i]->SetTitle(TString::Format("colCal%i",i));
-		rowCal[i]->SetTitle(TString::Format("rowCal%i",i));
-		colCalRes[i] = new TGraph();
-		rowCalRes[i] = new TGraph();
-		colCalRes[i]->SetNameTitle(TString::Format("colCalRes%i",i));
-		rowCalRes[i]->SetNameTitle(TString::Format("rowCalRes%i",i));
-		colCalRes[i]->SetTitle(TString::Format("colCalRes%i",i));
-		rowCalRes[i]->SetTitle(TString::Format("rowCalRes%i",i));
+void ClustHitMapAll(const char* fileName, int x, ulong firstEvent=0, ulong maxEvents=0) {
+	TApplication* app = new TApplication("myApp", 0, 0);
+    TFile* in = new TFile(fileName,"READ");
+    if(!in || in->IsZombie()) {cerr << "Can't open rootfile with name: " << fileName << "\n"; exit(EXIT_FAILURE);}
+    TTree* h101 = dynamic_cast<TTree*>(in->Get("h101"));
+    auto t1 = timeNow();
+
+	/* Read containers */
+	uint cNum;
+	uint AlpideID[MAX_CLUSTERS];
+	uint cSize[MAX_CLUSTERS];
+	float uCol[MAX_CLUSTERS];
+	float uRow[MAX_CLUSTERS];
+    SetAllBranchAddressClust(h101, cNum, AlpideID, cSize, uCol, uRow);
+
+    TH2D* hRawHit[ALPIDE_NUM+1];
+	TCanvas *canvas[ALPIDE_NUM+1];
+
+	for(int x=1; x<=ALPIDE_NUM; ++x) {
+		hRawHit[x]  = new TH2D(TString::Format("Clust Hitmap ALPIDE%d", x), TString::Format("Clust Hitmap ALPIDE%d", x), 1024,0,1024,512,0,512);  
+		canvas[x] = new TCanvas(TString::Format("Clust Hitmap ALPIDE%d", x), TString::Format("Clust Hitmap ALPIDE%d", x), 1200,1200);
 	}
-	rowLine = new TF1("rowLine","[0]*x+[1]",0,512); 
-	colLine = new TF1("colLine","[0]*x+[1]",0,1024); 
-
-	SetAllBranchAddress(h101, cNum, AlpideID, cSize, uCol, uRow);
-
 	ulong lastEvent = SortEntries(firstEvent, maxEvents, h101);
 	printf("Entries in file: %lld\n", h101->GetEntries());
-	ulong evCounter{0};
-	/* MARK: event loop */	
-	for(ulong evNum = firstEvent; evNum < lastEvent; ++evNum) {
-		++evCounter; if(evCounter%100 == 0) PrintProgress((float)evCounter/maxEvents);		
+    ulong evCounter{0};
+    
+    for(ulong evNum = firstEvent; evNum < lastEvent; ++evNum) {
+        ++evCounter; if(evCounter%100 == 0) PrintProgress((float)evCounter/maxEvents);		
 		h101->GetEntry(evNum);
 
-		for(uint i=0; i<cNum; ++i) {
-			if(AlpideID[i] != 1) break; //only correlate vs positions in 1st det
-			for(uint j=i+1; j<cNum; ++j) {
-				int id = AlpideID[j];
-				if(id == 1) continue; //don't correlate 1st vs. 1st
-				HitMapC[id]->Fill(uCol[i], uCol[j]);
-				HitMapR[id]->Fill(uRow[i], uRow[j]);
-			}
+		for(uint c=0; c<cNum; ++c) {
+			int x = AlpideID[c];
+			hRawHit[x]->Fill(uCol[c], uRow[c], (double)cSize[c]);
 		}
+    }
+    
+	for(int x=1; x<=ALPIDE_NUM; ++x) {
+		canvas[x]->cd();
+		hRawHit[x]->Draw("colz");
 	}
 
 	auto t2 = timeNow();
-	cout << "\nTime taken for looping: " << duration_cast<seconds>(t2-t1).count() << "s\n";
-	cout << "Doing analysis now, hol'up.. \n";
-	double slopeCol[ALPIDE_NUM];
-	double slopeColFine[ALPIDE_NUM+1];
-	double slopeColFineSig[ALPIDE_NUM+1];
-	double slopeRow[ALPIDE_NUM+1];
-	double slopeRowFine[ALPIDE_NUM+1];
-	double slopeRowFineSig[ALPIDE_NUM+1];
-
-	double offsetCol[ALPIDE_NUM];
-	double offsetColFine[ALPIDE_NUM+1];
-	double offsetColFineSig[ALPIDE_NUM+1];
-	double offsetRow[ALPIDE_NUM+1];
-	double offsetRowFine[ALPIDE_NUM+1];
-	double offsetRowFineSig[ALPIDE_NUM+1];
-
-	/* MARK: slicing and fitting */
-	for(int det=2; det<=ALPIDE_NUM; ++det) {
-		cout << "\n\n----- ALPIDE" << det << " projections -----\n";
-		for(int col=0; col<1024; ++col) {
-			HitMapPC[det][col] = (TH1D*)HitMapC[det]->ProjectionX(TString::Format("det%d; col%d",det,col), col, col+1);
-			int maxBin = HitMapPC[det][col]->GetMaximumBin();
-			colCal[det]->AddPoint(col,maxBin);
-			HitMapPC[det][col]->Delete();
-		}
-		cout << "\nCol: after initial calibration: \n";
-        colCal[det]->Fit(colLine);
-        double gradCol = colLine->GetParameter(0);
-        double intCol = colLine->GetParameter(1);
-		
-		slopeCol[det] = gradCol;
-		offsetCol[det] = intCol;
-
-		colCal[det]->Delete();
-		colCal[det] = new TGraph();
-		colCal[det]->SetNameTitle(TString::Format("Col Calib %d",det));
-		colCal[det]->SetTitle(TString::Format("Col Calib %d",det));
-		/* Do a finer calibration ... */
-		for(int col=0; col<1024; ++col) {
-			HitMapPC[det][col] = (TH1D*)HitMapC[det]->ProjectionX(TString::Format("det%d; col%d",det,col), col, col+1);
-			int maxBin = HitMapPC[det][col]->GetMaximumBin();
-			if(abs(gradCol*col + intCol - maxBin) < 20) colCal[det]->AddPoint(col, maxBin);	
-			HitMapPC[det][col]->Delete();
-		}
-		cout << "\nCol: after fine calibration: \n";
-        colCal[det]->Fit(colLine);
-        gradCol = colLine->GetParameter(0);
-        intCol = colLine->GetParameter(1);
-
-		slopeColFine[det] = gradCol;
-		slopeColFineSig[det] = colLine->GetParError(0);
-		offsetColFine[det] = intCol;
-		offsetColFineSig[det] = colLine->GetParError(1);
-		
-		for(int col=0; col<1024; ++col) {
-			HitMapPC[det][col] = (TH1D*)HitMapC[det]->ProjectionX(TString::Format("det%d; col%d",det,col), col, col+1);
-			int maxBin = HitMapPC[det][col]->GetMaximumBin();
-			colCalRes[det]->AddPoint(col, (gradCol*col + intCol - maxBin));
-			HitMapPC[det][col]->Delete();
-		}
-		
-		// ---------------- //
-		// ----- ROWS ----- //
-		// ---------------- //
-		for(int row=0; row<512; ++row) {
-			HitMapPR[det][row] = (TH1D*)HitMapC[det]->ProjectionX(TString::Format("det%d; row%d",det,row), row, row+1);
-			int maxBin = HitMapPR[det][row]->GetMaximumBin();
-			rowCal[det]->AddPoint(row,maxBin);
-			HitMapPR[det][row]->Delete();
-		}
-		cout << "\nRow: after initial calibration: \n";
-		rowCal[det]->Fit(rowLine);
-		double gradRow = rowLine->GetParameter(0);
-		double intRow = rowLine->GetParameter(1);
-
-		slopeRow[det] = gradRow;
-		offsetRow[det] = intRow;
-
-		rowCal[det]->Delete();
-		rowCal[det] = new TGraph();
-		rowCal[det]->SetNameTitle(TString::Format("Row Calib %d",det));
-		rowCal[det]->SetTitle(TString::Format("Row Calib %d",det));
-		/* Do a finer calibration ... */
-		for(int row=0; row<512; ++row) {
-			HitMapPR[det][row] = (TH1D*)HitMapC[det]->ProjectionX(TString::Format("det%d; row%d",det,row), row, row+1);
-			int maxBin = HitMapPR[det][row]->GetMaximumBin();
-			if(abs(gradRow*row + intRow - maxBin) < 20) rowCal[det]->AddPoint(row, maxBin);
-			HitMapPR[det][row]->Delete();
-		}
-		cout << "\nRow: after fine calibration: \n";
-        rowCal[det]->Fit(rowLine);
-        gradRow = rowLine->GetParameter(0);
-        intRow = rowLine->GetParameter(1);
-
-		slopeRowFine[det] = gradRow;
-		slopeRowFineSig[det] = rowLine->GetParError(0);
-		offsetRowFine[det] = intRow;
-		offsetRowFineSig[det] = rowLine->GetParError(1);
-
-		for(int row=0;row<512;row++) {
-			HitMapPR[det][row] = (TH1D*)HitMapR[det]->ProjectionX(TString::Format("det%d; row%d",det,row), row, row+1);
-			int maxBin = HitMapPR[det][row]->GetMaximumBin();
-			rowCalRes[det]->AddPoint(row,(gradRow*row + intRow - maxBin));  
-			HitMapPR[det][row]->Delete();
-		}
-	}
-
-	cout << std::fixed << std::setprecision(5);
-	TCanvas* c[ALPIDE_NUM+1];
-	
-	printf("\n----- %s -----\n", fileName);
-	for(int det=2; det<=ALPIDE_NUM; ++det) {
-		colCal[det]->Write();
-		rowCal[det]->Write();
-		/* colCalRes[det]->Write(); */
-		/* rowCalRes[det]->Write(); */
-		
-		c[det] = new TCanvas(TString::Format("ALPIDE%d vs. ref", det), TString::Format("ALPIDE%d vs. ref", det), 1024, 1024);
-		c[det]->Divide(1,2);
-		c[det]->cd(1); colCal[det]->Draw();
-		c[det]->cd(2); rowCal[det]->Draw();
-		printf("Det %d :: Col coeffs :: Slope: %.5f +- %.5f | Offset: %.5f +- %.5f\n", det,slopeColFine[det],slopeColFineSig[det],offsetColFine[det],offsetColFineSig[det]);
-		printf("         Row coeffs :: Slope: %.5f +- %.5f | Offset: %.5f +- %.5f",slopeRowFine[det],slopeRowFineSig[det],offsetRowFine[det],offsetRowFineSig[det]);
-		printf("\n");
-	}
-	/* TVectorD objects to write to the output ROOT file */
-	TVectorD* aCol = new TVectorD(ALPIDE_NUM-1,     slopeColFine+2);	aCol->Write("aCol");
-	TVectorD* aColSig = new TVectorD(ALPIDE_NUM-1,  slopeColFineSig+2); aColSig->Write("aColSig");
-	TVectorD* bCol = new TVectorD(ALPIDE_NUM-1,    offsetColFine+2);	bCol->Write("bCol");
-	TVectorD* bColSig = new TVectorD(ALPIDE_NUM-1, offsetColFineSig+2); bColSig->Write("bColSig");
-	
-	TVectorD* aRow = new TVectorD(ALPIDE_NUM-1,     slopeRowFine+2);	aRow->Write("aRow");
-	TVectorD* aRowSig = new TVectorD(ALPIDE_NUM-1,  slopeRowFineSig+2); aRowSig->Write("aRowSig");
-	TVectorD* bRow = new TVectorD(ALPIDE_NUM-1,    offsetRowFine+2);	bRow->Write("bRow");
-	TVectorD* bRowSig = new TVectorD(ALPIDE_NUM-1, offsetRowFineSig+2); bRowSig->Write("bRowSig");	
-
-	out->Close();
-	
-	auto t3 = timeNow();
-	cout << "\nTotal runtime: " << duration_cast<seconds>(t3-t1).count() << "s\n";
-	
+    cout << "\nTime taken: " << duration_cast<seconds>(t2-t1).count() << "s\n";
 	app->Run();
+
 	in->Close();
 }
 
+void Hitmap(const char* fileName, int x, ulong firstEvent, ulong maxEvents) {
+	TFile* in = new TFile(fileName, "READ");
+    if(!in || in->IsZombie()) {cerr << "Can't open rootfile with name: " << fileName << "\n"; exit(EXIT_FAILURE);}
+    TTree* h101 = dynamic_cast<TTree*>(in->Get("h101"));
+
+	auto br = h101->FindBranch("uCol");
+	in->Close();
+	
+	if(br) ClustHitMap(fileName, x, firstEvent, maxEvents);
+	else RawHitMap(fileName, x, firstEvent, maxEvents);
+}
+
+void HitmapAll(const char* fileName, ulong firstEvent, ulong maxEvents) {
+	TFile* in = new TFile(fileName, "READ");
+    if(!in || in->IsZombie()) {cerr << "Can't open rootfile with name: " << fileName << "\n"; exit(EXIT_FAILURE);}
+    TTree* h101 = dynamic_cast<TTree*>(in->Get("h101"));
+	auto br = (ulong)h101->FindBranch("CL_SIZE");
+	in->Close();
+
+	if(br) ClustHitMapAll(fileName, firstEvent, maxEvents);
+	else RawHitMapAll(fileName, firstEvent, maxEvents);
+}
 
 auto main(int argc, char* argv[]) -> int {
     if(IsCmdArg("help", argc, argv)) {cout << analyse_help; return 0;}
@@ -300,22 +320,29 @@ auto main(int argc, char* argv[]) -> int {
         }
         catch(exception& e) {}
     }
-	if(ParseCmdLine("raw", pStr, argc, argv)) {
-		int x;
+	
+	if(IsCmdArg("hitmap", argc, argv)) {
+		HitmapAll(fileName.c_str(), firstEvent, maxEvents);
+	} 
+	else if(ParseCmdLine("hitmap", pStr, argc, argv)) {
 		try {
-			x = stoi(pStr);
-			RawHitMap(fileName.c_str(), x, firstEvent, maxEvents);
+			int x = stoi(pStr);
+			Hitmap(fileName.c_str(), x, firstEvent, maxEvents);
 		}
 		catch(exception& e) {}
 	}
-	if(!ParseCmdLine("output", outFile, argc, argv)) {
-		outFile = fileName.substr(0, fileName.find('.')) + "_CALIB.root";
-		cout << "No output file specified. Writing into file: " << outFile << endl;
+
+	if(ParseCmdLine("corr", pStr, argc, argv)) {
+		auto split = SplitStringToVector(pStr, ',');
+		try {
+			int x = stoi(split[0]);
+			int y = stoi(split[1]);
+			RawCorrelation(fileName.c_str(), x,y, firstEvent, maxEvents);
+		}
+		catch(exception& e) {}
 	}
-	if(IsCmdArg("cal", argc, argv)) {
-		CalibrateAll(fileName.c_str(), outFile.c_str(), firstEvent, maxEvents);	
-	}
-	else if(IsCmdArg("track", argc, argv)) {
+
+	if(IsCmdArg("track", argc, argv)) {
 
 	}
     cout<<endl; return 0;

@@ -24,14 +24,16 @@ void SetOneBranchAddress(TTree* h101, int x, uint* Col, uint* Row, uint& rowM, u
     h101->SetBranchAddress(TString::Format("ALPIDE%dROW", x), &rowM);
 }
 
-void SetAllBranchAddress(TTree* h101, uint (*Col)[MAX_HITS], uint (*Row)[MAX_HITS], uint* rowM, uint* colM) {
-	if(!h101) return;
+void SetAllBranchAddress(TTree* h101, uint (*Col)[MAX_HITS], uint (*Row)[MAX_HITS], uint* rowM, uint* colM, uint& tHi, uint& tLo) {
+	if(!h101 || h101->IsZombie()) return;
 	for(int x=1; x<=ALPIDE_NUM; ++x) {
 		h101->SetBranchAddress(TString::Format("ALPIDE%dCOLv", x), Col[x]);
 		h101->SetBranchAddress(TString::Format("ALPIDE%dROWv", x), Row[x]);
 		h101->SetBranchAddress(TString::Format("ALPIDE%dCOL", x), &colM[x]);
 		h101->SetBranchAddress(TString::Format("ALPIDE%dROW", x), &rowM[x]);
 	}
+	h101->SetBranchAddress("ALPIDE1T_HI", &tHi);
+	h101->SetBranchAddress("ALPIDE1T_LO", &tLo);
 }
 
 /* TODO Later: This will clusterise hits in all alpides (specified by the directive ALPIDE_NUM) 
@@ -45,13 +47,15 @@ void CoarseClusterise(const char* fileName, const char* outFile, ulong firstEven
 	if(veto < 0) veto=0;
 	
 	/* Read containers */
+	UInt_t tHi, tLo;
 	UInt_t Col[ALPIDE_NUM+1][MAX_HITS];
 	UInt_t Row[ALPIDE_NUM+1][MAX_HITS];
 	UInt_t colM[ALPIDE_NUM+1];
 	UInt_t rowM[ALPIDE_NUM+1];
-	SetAllBranchAddress(h101, Col, Row, colM, rowM);
+	SetAllBranchAddress(h101, Col, Row, colM, rowM, tHi, tLo);
 	
 	/* MARK: Write containers */
+	//uint wrHigh, wrLow;
 	uint cNum(0); // number of clusters
 	constexpr size_t MALLOC_SIZE = MAX_CLUSTERS * sizeof(float); // uint is same size
 	uint* AlpideID = static_cast<uint*>(malloc(MALLOC_SIZE)); // chip identifier: [1,2,3 ... ALPIDE_NUM];
@@ -63,6 +67,8 @@ void CoarseClusterise(const char* fileName, const char* outFile, ulong firstEven
 	TTree *tree = new TTree("h101", "h101");
 	
 	/* MARK: outward branches */
+	tree->Branch("T_HI", &tHi);
+	tree->Branch("T_LO", &tLo);
 	tree->Branch("CL_NUM", &cNum);
 	tree->Branch("ALPIDE_ID", AlpideID, "ALPIDE_ID[CL_NUM]/i");
 	tree->Branch("CL_SIZE", cSize, "CL_SIZE[CL_NUM]/i");
@@ -125,7 +131,7 @@ auto main(int argc, char* argv[]) -> int {
 		cout << clusterise_help; return 0;
 	}
 	if(!ParseCmdLine("output", outFile, argc, argv)) {
-		outFile = fileName.substr(0, fileName.find('.')) + "_coarse_cl.root";
+		outFile = fileName.substr(0, fileName.find('.')) + "_cl.root";
 		cout << "No output file specified. Writing into file: " << outFile << endl;
 	}
     
@@ -173,8 +179,9 @@ auto main(int argc, char* argv[]) -> int {
 
 
 	/* ### ALPIDE_NUM is NOT defined at runtime! Once it's changed, the binary has to be recompiled. ### */
-	
+
 	CoarseClusterise(fileName.c_str(), outFile.c_str(), firstEvent, maxEvents, veto, mandatory);
+	
 	cout<<endl; return 0;
 }
 
