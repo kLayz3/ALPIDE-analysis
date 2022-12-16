@@ -1,12 +1,12 @@
 #include "AlpideClustering.h"
+#include "AuxFunctions.h"
 #include <cmath>
+
 using namespace std;
 using namespace AlpideClustering;
 
-template<class T>  
-void AlpideClustering::QuickErase(vector<T> &v, int i) {
-    std::swap(v[i], v.back());
-    v.pop_back();
+unsigned AlpideClustering::DistXY(const Point& p1, const Point& p2) {
+	return abs((int)p1.col - (int)p2.col) + abs((int)p1.row - (int)p2.row);
 }
 
 bool AlpideClustering::IsNeighbour(const Point& p1, const Point& p2) {
@@ -17,7 +17,7 @@ bool AlpideClustering::IsInCluster(const Point& p0, const vector<Point>& cluster
     for(unsigned i=0; i<cluster.size(); ++i) {
         if(IsNeighbour(p0, cluster[i]))
             return true;
-    }   
+    }
     return false;
 }
 
@@ -33,7 +33,7 @@ vector<Point> AlpideClustering::MakeCluster(Point& p0, vector<Point>& hits) {
                 QuickErase(hits, i); 
                 --i;
                 pointFound = true;
-            }   
+            }
         }   
     }   
     return cluster;
@@ -56,7 +56,7 @@ vector<vector<Point>> AlpideClustering::ConstructClusters(unsigned* ColArray, un
         Point p0 = hits[0];
         QuickErase(hits, 0); 
         auto cluster = MakeCluster(p0, hits);
-        if((int)cluster.size() > veto) clusters.emplace_back(cluster); 
+        if(cluster.size() > veto) clusters.emplace_back(cluster); 
     }
     return clusters;
 }
@@ -80,7 +80,7 @@ unsigned AlpideClustering::FitCluster(const vector<Point>& cluster, float& uX, f
     sigmaY = (sigmaY>0) ? sqrt(sigmaY) : 0;
 
 	/* Bind to arguments finally -> faster runtime when doing calculations on local stack variables 
-	 * rather than pushing/popping passed-by-reference variables -- M.B. */
+	 * rather than passed-by-reference variables -- M.B. */
 	uX = meanX; uY = meanY; sX = sigmaX; sY = sigmaY;
     return N;
 }

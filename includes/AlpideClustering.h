@@ -20,8 +20,8 @@ namespace AlpideClustering {
 			return std::make_pair(col, row);
 		}
     };
-    
-    template<class T> void QuickErase(std::vector<T> &v, int i); 
+
+	unsigned DistXY(const Point& p1, const Point& p2);
     bool IsNeighbour(const Point& p1, const Point& p2);
     bool IsInCluster(const Point& p0, const std::vector<Point>& cluster);
     std::vector<Point> MakeCluster(Point& p0, std::vector<Point>& hits);
