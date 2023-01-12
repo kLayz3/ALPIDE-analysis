@@ -1,5 +1,7 @@
 build*
+*.C
 temp*
 *.lmd
 *.root
 test
+saved*

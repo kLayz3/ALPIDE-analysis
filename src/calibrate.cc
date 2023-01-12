@@ -218,14 +218,15 @@ void Calibrate(const char* fileName, const char* outFile, ulong firstEvent=0, ul
 		printf("\n");
 	}
 	/* TVectorD objects to write to the output ROOT file */
+	/* zero-th index should be filled with 0's or NAN's */
 	/* arr[1] = 0 to each array as a 'reminder' that ALPIDE1 is the reference. */
-	TVectorD* aCol = new TVectorD(ALPIDE_NUM+1,     slopeColFine);	aCol->Write("aCol");
-	TVectorD* aColSig = new TVectorD(ALPIDE_NUM+1,  slopeColFineSig); aColSig->Write("aColSig");
+	TVectorD* aCol = new TVectorD(ALPIDE_NUM+1,	 slopeColFine);	    aCol->Write("aCol");
+	TVectorD* aColSig = new TVectorD(ALPIDE_NUM+1, slopeColFineSig);  aColSig->Write("aColSig");
 	TVectorD* bCol = new TVectorD(ALPIDE_NUM+1,    offsetColFine);	bCol->Write("bCol");
 	TVectorD* bColSig = new TVectorD(ALPIDE_NUM+1, offsetColFineSig); bColSig->Write("bColSig");
 	
-	TVectorD* aRow = new TVectorD(ALPIDE_NUM+1,     slopeRowFine);	aRow->Write("aRow");
-	TVectorD* aRowSig = new TVectorD(ALPIDE_NUM+1,  slopeRowFineSig); aRowSig->Write("aRowSig");
+	TVectorD* aRow = new TVectorD(ALPIDE_NUM+1,    slopeRowFine);		aRow->Write("aRow");
+	TVectorD* aRowSig = new TVectorD(ALPIDE_NUM+1, slopeRowFineSig);  aRowSig->Write("aRowSig");
 	TVectorD* bRow = new TVectorD(ALPIDE_NUM+1,    offsetRowFine);	bRow->Write("bRow");
 	TVectorD* bRowSig = new TVectorD(ALPIDE_NUM+1, offsetRowFineSig); bRowSig->Write("bRowSig");	
 

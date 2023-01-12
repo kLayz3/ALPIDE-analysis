@@ -32,6 +32,7 @@ inline void TGraphFromVector(TGraph& t, std::vector<A> vX, std::vector<B> vY) {
 /* ------------------------- */
 template<class T>  
 inline void QuickSwap(std::vector<T> &v, int i, int j) {
+	if(!v.size()) return;
     std::swap(v[i], v[j]);
 }
 

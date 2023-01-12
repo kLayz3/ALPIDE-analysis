@@ -62,7 +62,7 @@ void CoarseClusterise(const char* fileName, const char* outFile, ulong firstEven
 	uint* cSize = static_cast<uint*>(malloc(MALLOC_SIZE));      // sizes of each cluster
 	float* uCol = static_cast<float*>(malloc(MALLOC_SIZE));   // mean X of the cluster
 	float* uRow = static_cast<float*>(malloc(MALLOC_SIZE));   // mean Y of the cluster
-	
+
 	TFile *out = new TFile(outFile, "RECREATE");
 	TTree *tree = new TTree("h101", "h101");
 	
