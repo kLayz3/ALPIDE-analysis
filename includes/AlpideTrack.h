@@ -39,11 +39,10 @@ struct AlpideTrack {
 										 * detectors can be tolerated and still call the hits part of a track */
 	static float tolRow;				// -||- but for rows (y-direction);
 	
-	/* static methods */
+	/* static methods to be used in main functions */
 	static void LoadCal(const char* fileName);
-	static void LoadDefaultCal() {}
-	static void ColVCal(std::vector<uint>& detV, std::vector<float>& colV);
-	static void RowVCal(std::vector<uint>& detV, std::vector<float>& rowV);
+	static void ColVCal(std::vector<int>& detV, std::vector<float>& colV);
+	static void RowVCal(std::vector<int>& detV, std::vector<float>& rowV);
 
 	static double ColToX(float col) {return (double)col*PIXEL_SIZE_X + PIXEL_SIZE_X2;}
 	static double RowToY(float row) {return (double)row*PIXEL_SIZE_Y + PIXEL_SIZE_Y2;}

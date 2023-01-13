@@ -41,8 +41,8 @@ void Calibrate(const char* fileName, const char* outFile, ulong firstEvent=0, ul
 	TFile* out = new TFile(outFile, "RECREATE");
 	
 	auto t1 = timeNow();
-	TH2D* HitMapR[ALPIDE_NUM+1];
 	TH2D* HitMapC[ALPIDE_NUM+1];
+	TH2D* HitMapR[ALPIDE_NUM+1];
 	TH1D* HitMapPC[ALPIDE_NUM+1][1024];
 	TH1D* HitMapPR[ALPIDE_NUM+1][512];
 	TGraph* colCal[ALPIDE_NUM+1];
@@ -52,8 +52,8 @@ void Calibrate(const char* fileName, const char* outFile, ulong firstEvent=0, ul
 	TF1* rowLine;
 	TF1* colLine;
 	for(int i=1; i<=ALPIDE_NUM; i++) {
-		HitMapR[i] = new TH2D(TString::Format("HitMapR%d",i),TString::Format("HitMapR%d",i),512,0,512,512,0,512);
 		HitMapC[i] = new TH2D(TString::Format("HitMapC%d",i),TString::Format("HitMapC%d",i),1024,0,1024,1024,0,1024);
+		HitMapR[i] = new TH2D(TString::Format("HitMapR%d",i),TString::Format("HitMapR%d",i),512,0,512,512,0,512);
 		colCal[i] = new TGraph();
 		rowCal[i] = new TGraph();
 		colCal[i]->SetNameTitle(TString::Format("colCal%i",i));
@@ -67,8 +67,8 @@ void Calibrate(const char* fileName, const char* outFile, ulong firstEvent=0, ul
 		colCalRes[i]->SetTitle(TString::Format("colCalRes%i",i));
 		rowCalRes[i]->SetTitle(TString::Format("rowCalRes%i",i));
 	}
-	rowLine = new TF1("rowLine","[0]*x+[1]",0,512); 
 	colLine = new TF1("colLine","[0]*x+[1]",0,1024); 
+	rowLine = new TF1("rowLine","[0]*x+[1]",0,512); 
 
 	SetAllBranchAddress(h101, cNum, AlpideID, cSize, uCol, uRow);
 
@@ -81,7 +81,7 @@ void Calibrate(const char* fileName, const char* outFile, ulong firstEvent=0, ul
 		h101->GetEntry(evNum);
 
 		for(uint i=0; i<cNum; ++i) {
-			if(AlpideID[i] != 1) break; //only correlate vs positions in 1st det
+			if(AlpideID[i] != 1) break; // id[i] == 1 must-have
 			for(uint j=i+1; j<cNum; ++j) {
 				int id = AlpideID[j];
 				if(id == 1) continue; //don't correlate 1st vs. 1st
@@ -95,10 +95,10 @@ void Calibrate(const char* fileName, const char* outFile, ulong firstEvent=0, ul
 	cout << "\nTime taken for looping: " << duration_cast<seconds>(t2-t1).count() << "s\n";
 	cout << "Doing analysis now, hol'up.. \n";
 	double slopeCol[ALPIDE_NUM+1];
-	double slopeColFine[ALPIDE_NUM+1]={0}; slopeColFine[1]=1;
+	double slopeColFine[ALPIDE_NUM+1]={0}; slopeColFine[1] = 1;
 	double slopeColFineSig[ALPIDE_NUM+1] = {0};
 	double slopeRow[ALPIDE_NUM+1];
-	double slopeRowFine[ALPIDE_NUM+1]={0}; slopeRowFine[1]=1;
+	double slopeRowFine[ALPIDE_NUM+1]={0}; slopeRowFine[1] = 1;
 	double slopeRowFineSig[ALPIDE_NUM+1] = {0};
 
 	double offsetCol[ALPIDE_NUM+1] = {0};
@@ -127,8 +127,8 @@ void Calibrate(const char* fileName, const char* outFile, ulong firstEvent=0, ul
 
 		colCal[det]->Delete();
 		colCal[det] = new TGraph();
-		colCal[det]->SetNameTitle(TString::Format("Col Calib %d",det));
-		colCal[det]->SetTitle(TString::Format("Col Calib %d",det));
+		colCal[det]->SetNameTitle(TString::Format("ColCL%d",det));
+		colCal[det]->SetTitle(TString::Format("ColCL%d",det));
 		/* Do a finer calibration ... */
 		for(int col=0; col<1024; ++col) {
 			HitMapPC[det][col] = (TH1D*)HitMapC[det]->ProjectionX(TString::Format("det%d; col%d",det,col), col, col+1);
@@ -149,7 +149,7 @@ void Calibrate(const char* fileName, const char* outFile, ulong firstEvent=0, ul
 		for(int col=0; col<1024; ++col) {
 			HitMapPC[det][col] = (TH1D*)HitMapC[det]->ProjectionX(TString::Format("det%d; col%d",det,col), col, col+1);
 			int maxBin = HitMapPC[det][col]->GetMaximumBin();
-			colCalRes[det]->AddPoint(col, (gradCol*col + intCol - maxBin));
+			colCalRes[det]->AddPoint(col, (gradCol*col + intCol - maxBin)); //fit residues
 			HitMapPC[det][col]->Delete();
 		}
 		
@@ -157,7 +157,7 @@ void Calibrate(const char* fileName, const char* outFile, ulong firstEvent=0, ul
 		// ----- ROWS ----- //
 		// ---------------- //
 		for(int row=0; row<512; ++row) {
-			HitMapPR[det][row] = (TH1D*)HitMapC[det]->ProjectionX(TString::Format("det%d; row%d",det,row), row, row+1);
+			HitMapPR[det][row] = (TH1D*)HitMapR[det]->ProjectionX(TString::Format("det%d; row%d",det,row), row, row+1);
 			int maxBin = HitMapPR[det][row]->GetMaximumBin();
 			rowCal[det]->AddPoint(row,maxBin);
 			HitMapPR[det][row]->Delete();
@@ -172,11 +172,11 @@ void Calibrate(const char* fileName, const char* outFile, ulong firstEvent=0, ul
 
 		rowCal[det]->Delete();
 		rowCal[det] = new TGraph();
-		rowCal[det]->SetNameTitle(TString::Format("Row Calib %d",det));
-		rowCal[det]->SetTitle(TString::Format("Row Calib %d",det));
+		rowCal[det]->SetNameTitle(TString::Format("RowCL%d",det));
+		rowCal[det]->SetTitle(TString::Format("RowCL%d",det));
 		/* Do a finer calibration ... */
 		for(int row=0; row<512; ++row) {
-			HitMapPR[det][row] = (TH1D*)HitMapC[det]->ProjectionX(TString::Format("det%d; row%d",det,row), row, row+1);
+			HitMapPR[det][row] = (TH1D*)HitMapR[det]->ProjectionX(TString::Format("det%d; row%d",det,row), row, row+1);
 			int maxBin = HitMapPR[det][row]->GetMaximumBin();
 			if(abs(gradRow*row + intRow - maxBin) < 20) rowCal[det]->AddPoint(row, maxBin);
 			HitMapPR[det][row]->Delete();
@@ -194,11 +194,11 @@ void Calibrate(const char* fileName, const char* outFile, ulong firstEvent=0, ul
 		for(int row=0;row<512;row++) {
 			HitMapPR[det][row] = (TH1D*)HitMapR[det]->ProjectionX(TString::Format("det%d; row%d",det,row), row, row+1);
 			int maxBin = HitMapPR[det][row]->GetMaximumBin();
-			rowCalRes[det]->AddPoint(row,(gradRow*row + intRow - maxBin));  
+			rowCalRes[det]->AddPoint(row,(gradRow*row + intRow - maxBin)); //fit residues  
 			HitMapPR[det][row]->Delete();
 		}
 	}
-
+	/* MARK: Writing output & plotting */
 	cout << std::fixed << std::setprecision(5);
 	TCanvas* c[ALPIDE_NUM+1];
 	
@@ -219,7 +219,7 @@ void Calibrate(const char* fileName, const char* outFile, ulong firstEvent=0, ul
 	}
 	/* TVectorD objects to write to the output ROOT file */
 	/* zero-th index should be filled with 0's or NAN's */
-	/* arr[1] = 0 to each array as a 'reminder' that ALPIDE1 is the reference. */
+	/* arr[1] = 1. to each array as a 'reminder' that ALPIDE1 is the reference. */
 	TVectorD* aCol = new TVectorD(ALPIDE_NUM+1,	 slopeColFine);	    aCol->Write("aCol");
 	TVectorD* aColSig = new TVectorD(ALPIDE_NUM+1, slopeColFineSig);  aColSig->Write("aColSig");
 	TVectorD* bCol = new TVectorD(ALPIDE_NUM+1,    offsetColFine);	bCol->Write("bCol");

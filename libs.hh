@@ -68,7 +68,7 @@ inline extern const std::string clusterise_help =
 --file=inputName.root        ..Input file.\n\
 --first-event=N              ..Start from N-th event. Default 0. \n\
 --max-events=N               ..Specify maximum number of events. Default all entries.\n\
---veto=N                     ..Only consider clusters with size>N. Default N=2.\n\
+--veto=N                     ..Only consider clusters with size>N. Default N=1.\n\
 --output=/PATH/TO/OUT.root   ..Specify output file name. Default same as input file with 'cl' suffix.\n\
 --dets=[d1,d2,..]            ..Condition to only write events which have clusters in specified detectors.\n\
       =all				     ..Equivalent to dets=1,2,...,ALPIDE_NUM. Every event must contain a cluster in all detectors.\n\
@@ -103,7 +103,7 @@ inline extern const std::string analyse_help =
 --hitmap=X                   ..Plots the hitmap of AlpideX.\n\
 --hitmap		             ..Plots the hitmaps of all Alpides.\n\
 --track			             ..Do the tracking.\n\
-	--cal=calFile.root       ..Pass calibration file to the tracker. Must have.\n\
+	--cal=calFile.root       ..Pass calibration file to the tracker (OPTIONAL).\n\
 	--save=saveFile.root     ..Save the tracks into a rootfile (OPTIONAL).\n\
 --help                       ..Print this message to stdout. \n\
 \n\

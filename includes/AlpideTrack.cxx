@@ -42,7 +42,7 @@ AlpideTrack::AlpideTrack(vector<int>& detV, vector<float>& colV, vector<float>& 
 }
 
 void AlpideTrack::GetFit(double& x0, double& y0, double& phiX, double& phiY) {
-	if((this->tDet).size() < 3) {cerr<<__PRETTY_FUNCTION__<< " , vector size is < 3."; return;}
+	if((this->tDet).size() < 3) {cerr<<__PRETTY_FUNCTION__<< " , vector size is < 3.\n"; return;}
 	
 	TF1 lineX("lineX","[0]*x+[1]", minZ, maxZ);
 	TF1 lineY("lineY","[0]*x+[1]", minZ, maxZ);
@@ -76,7 +76,9 @@ void AlpideTrack::LoadCal(const char* fileName) {
 	TFile* in = new TFile(fileName,"READ");
 	if(!in || in->IsZombie()) {
 		cerr << "Can't open rootfile: " << fileName << __PRETTY_FUNCTION__ <<"\n";
-		exit(EXIT_FAILURE);
+		aCol.fill(1.); aRow.fill(1.);
+		bCol.fill(0.); bRow.fill(0.);
+		return;
 	}
 	TVectorD* slopeCol(in->Get<TVectorD>("aCol"));
 	TVectorD* offsetCol(in->Get<TVectorD>("bCol"));
@@ -96,13 +98,14 @@ void AlpideTrack::LoadCal(const char* fileName) {
 	in->Close(); delete in;
 }
 
-void AlpideTrack::ColVCal(vector<uint>& detV, vector<float>& colV) {
+/* Calibrates colV and rowV vectors */
+void AlpideTrack::ColVCal(vector<int>& detV, vector<float>& colV) {
 	for(int i=0; i<detV.size(); ++i) {
 		auto d = detV[i]; // 1,2,3, ... ALPIDE_NUM
 		colV[i] = aCol[d] * colV[i] + bCol[d];
 	}
 }
-void AlpideTrack::RowVCal(vector<uint>& detV, vector<float>& rowV) {
+void AlpideTrack::RowVCal(vector<int>& detV, vector<float>& rowV) {
 	for(int i=0; i<detV.size(); ++i) {
 		auto d = detV[i];
 		rowV[i] = aRow[d] * rowV[i] + bRow[d];

@@ -11,7 +11,7 @@
 #define ALPIDE_NUM 6
 
 /* Z-coordinates of each ALPIDE detector in the telescope */
- const double Z_Alpide[ALPIDE_NUM+1] = {NAN,
+const double Z_Alpide[] = {NAN,
 	0,
 	20,
 	50,
