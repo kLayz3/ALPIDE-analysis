@@ -4,17 +4,10 @@
 #include "libs.hh"
 #include "spec.hh"
 
-#define LEN(x) (sizeof x / sizeof *x)
-#define timeNow() std::chrono::high_resolution_clock::now()
-
-typedef uint32_t uint;
-typedef uint64_t ulong;
 extern const std::string clusterise_help;
 
 using namespace std;
 using namespace AlpideClustering;
-using std::chrono::duration_cast;
-using std::chrono::seconds;
 
 void SetOneBranchAddress(TTree* h101, int x, uint* Col, uint* Row, uint& rowM, uint& colM) {
     assert(x<=ALPIDE_NUM && x>=1);
@@ -36,10 +29,6 @@ void SetAllBranchAddress(TTree* h101, uint (*Col)[MAX_HITS], uint (*Row)[MAX_HIT
 	h101->SetBranchAddress("ALPIDE1T_LO", &tLo);
 }
 
-/* TODO Later: This will clusterise hits in all alpides (specified by the directive ALPIDE_NUM) 
-void RawClusterise(const char* fileName, const char* outFile = nullptr, ulong firstEvent=0, ulong maxEvents=0, int veto=1) {}
-*/
-
 void CoarseClusterise(const char* fileName, const char* outFile, ulong firstEvent=0, ulong maxEvents=0, int veto=1, const std::bitset<ALPIDE_NUM+1> mandatory = {0}) {	
 	TFile* in = new TFile(fileName,"READ");
     if(!in || in->IsZombie()) {cerr << "Can't open rootfile with name: " << fileName << "\n"; exit(EXIT_FAILURE);}
@@ -55,7 +44,6 @@ void CoarseClusterise(const char* fileName, const char* outFile, ulong firstEven
 	SetAllBranchAddress(h101, Col, Row, colM, rowM, tHi, tLo);
 	
 	/* MARK: Write containers */
-	//uint wrHigh, wrLow;
 	uint cNum(0); // number of clusters
 	constexpr size_t MALLOC_SIZE = MAX_CLUSTERS * sizeof(float); // uint is same size
 	uint* AlpideID = static_cast<uint*>(malloc(MALLOC_SIZE)); // chip identifier: [1,2,3 ... ALPIDE_NUM];
@@ -72,8 +60,8 @@ void CoarseClusterise(const char* fileName, const char* outFile, ulong firstEven
 	tree->Branch("CL_NUM", &cNum);
 	tree->Branch("ALPIDE_ID", AlpideID, "ALPIDE_ID[CL_NUM]/i");
 	tree->Branch("CL_SIZE", cSize, "CL_SIZE[CL_NUM]/i");
-	tree->Branch("CL_uCOL", uCol, "CL_uCol[CL_NUM]/F");
-	tree->Branch("CL_uROW", uRow, "CL_uRow[CL_NUM]/F");	
+	tree->Branch("CL_uCOL", uCol, "CL_uCOL[CL_NUM]/F");
+	tree->Branch("CL_uROW", uRow, "CL_uROW[CL_NUM]/F");	
 	
 	auto t1 = timeNow();
 
@@ -176,7 +164,6 @@ auto main(int argc, char* argv[]) -> int {
 			}
 		}
 	}
-
 
 	/* ### ALPIDE_NUM is NOT defined at runtime! Once it's changed, the binary has to be recompiled. ### */
 

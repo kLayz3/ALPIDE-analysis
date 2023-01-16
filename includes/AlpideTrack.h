@@ -4,8 +4,6 @@
 #include "libs.hh"
 #include "spec.hh"
 
-typedef uint32_t uint;
-
 struct AlpideTrack {
 	std::vector<int> tDet;
 	std::vector<double> tZ;  // Z positions of each hit, in mm

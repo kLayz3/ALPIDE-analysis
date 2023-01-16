@@ -1,9 +1,9 @@
-/* This class plays around the constructor which collects all suitable entries from (detV, colV, rowV, sizeV) event data. 
+/* This class plays around the constructor which collects all suitable entries from (detV[], colV[], rowV[], sizeV[]) event data. 
  * The passed-by-ref vectors have the collected elements removed. Call iteratively to construct 'all' tracks from 
- * an event data. A track is constructed such that all collected hits make a corresponding line with respect to the 
+ * an event. A track is constructed such that all collected hits make a corresponding line with respect to the 
  * first entry (detV[0], colV[0], rowV[0], sizeV[0]).
- * The (colV,rowV) vectors HAVE to be calibrated first, by passing them first to AlpideTrack::RowVCal()
- * and AlpideTrack::ColVCal() methods. 
+ * The (colV, rowV) vectors can be calibrated first, by passing them first to AlpideTrack::RowVCal()
+ * and AlpideTrack::ColVCal() methods during runtime.
  * Calibration is loaded by passing a file name to AlpideTrack::LoadCal() call.
  * -- Written by Martin Bajzek (M.Bajzek@gsi.de) */
 
@@ -24,17 +24,16 @@ AlpideTrack::AlpideTrack(vector<int>& detV, vector<float>& colV, vector<float>& 
 	bool isCollected[ALPIDE_NUM+1] = {0}; // indicator whether this detector is already included in the track
 	
 	auto d0 = detV[0]; auto c0 = colV[0]; auto r0 = rowV[0]; auto s0 = sizeV[0];
-	isCollected[d0] = 1;
-	PushData(d0, c0, r0, s0);
+	isCollected[d0] = 1; // flags this detector as already collected. It can't host another hit.
+	PushData(d0, c0, r0, s0); // pushes to the vector fields
 	QuickErase(detV,0); QuickErase(colV,0); QuickErase(rowV,0); QuickErase(sizeV,0);
 		
 	for(int i=0; i<detV.size(); ++i) {
-		int d = detV[i];
+		auto d = detV[i];
 		if(isCollected[d]) continue;
 		if(IsInTrack(d0,c0,r0, detV[i],colV[i],rowV[i])) {
-			PushData(detV[i], colV[i], rowV[i], sizeV[i]); // pushes to the vector fields
-			
-			isCollected[d] = 1; // flags this detector as already collected. It can't host another hit.
+			isCollected[d] = 1;
+			PushData(detV[i], colV[i], rowV[i], sizeV[i]);
 			QuickErase(detV,i); QuickErase(colV,i); QuickErase(rowV,i); QuickErase(sizeV,i);
 			--i;
 		}

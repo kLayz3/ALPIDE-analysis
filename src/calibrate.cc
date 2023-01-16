@@ -4,17 +4,10 @@
 #include "libs.hh"
 #include "spec.hh"
 
-#define LEN(x) (sizeof x / sizeof *x)
-#define timeNow() std::chrono::high_resolution_clock::now()
-
-typedef uint32_t uint;
-typedef uint64_t ulong;
 extern const std::string calibrate_help; 
 
 using namespace std;
 using namespace AlpideClustering;
-using std::chrono::duration_cast;
-using std::chrono::seconds;
 
 /* Read containers */
 uint cNum;

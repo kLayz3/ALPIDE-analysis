@@ -5,18 +5,12 @@
 #include "libs.hh"
 #include "spec.hh"
 
-#define LEN(x) (sizeof x / sizeof *x)
-#define timeNow() std::chrono::high_resolution_clock::now()
 #define MAX_TRACKS 128
 
-typedef uint32_t uint;
-typedef uint64_t ulong;
 extern const std::string analyse_help; 
 
 using namespace std;
 using namespace AlpideClustering;
-using std::chrono::duration_cast;
-using std::chrono::seconds;
 
 void SetOneBranchAddressRaw(TTree* h101, int x, uint* Col, uint* Row, uint& colM, uint& rowM, uint& tHi, uint& tLo) {
 	assert(x<=ALPIDE_NUM && x>=1);
@@ -58,6 +52,7 @@ void ClustHitMap(const char*, int, ulong, ulong);
 void ClustHitMapAll(const char*, int, ulong, ulong);
 void Hitmap(const char*, int, ulong, ulong);
 void HitmapAll(const char*, ulong, ulong);
+
 void TrackAnalysis(const char*, const char*, ulong, ulong, const char*);
 
 /* MARK: main */
@@ -95,6 +90,7 @@ auto main(int argc, char* argv[]) -> int {
 	else if(ParseCmdLine("hitmap", pStr, argc, argv)) {
 		try {
 			int x = stoi(pStr);
+			printf("Plotting hitmap of just ALPIDE%d\n", x);
 			Hitmap(fileName.c_str(), x, firstEvent, maxEvents);
 		}
 		catch(exception& e) {}
@@ -121,7 +117,7 @@ auto main(int argc, char* argv[]) -> int {
 	}
 	cout<<endl; return 0;
 }
-
+/* MARK: hitmaps */
 void RawHitMap(const char* fileName, int x, ulong firstEvent=0, ulong maxEvents=0) {
 	assert(x>=1 && x<=ALPIDE_NUM);
 	TApplication* app = new TApplication("myApp", 0, 0);
@@ -347,15 +343,15 @@ void ClustHitMapAll(const char* fileName, int x, ulong firstEvent=0, ulong maxEv
 }
 
 void Hitmap(const char* fileName, int x, ulong firstEvent, ulong maxEvents) {
+	cout << __PRETTY_FUNCTION__ << endl;
 	TFile* in = new TFile(fileName, "READ");
-	if(!in || in->IsZombie()) {cerr << "Can't open rootfile with name: " << fileName << "\n"; return;}
+	if(!in || in->IsZombie()) {cerr << __PRETTY_FUNCTION__ << " : Can't open rootfile with name: " << fileName << "\n"; return;}
 	TTree* h101 = dynamic_cast<TTree*>(in->Get("h101"));
-
-	auto br = h101->FindBranch("uCol");
-	in->Close();
+	TBranch* br = h101->FindBranch("CL_uCOL");
 
 	if(br) ClustHitMap(fileName, x, firstEvent, maxEvents);
 	else RawHitMap(fileName, x, firstEvent, maxEvents);
+	in->Close();
 }
 
 void HitmapAll(const char* fileName, ulong firstEvent, ulong maxEvents) {
@@ -368,6 +364,7 @@ void HitmapAll(const char* fileName, ulong firstEvent, ulong maxEvents) {
 	if(br) ClustHitMapAll(fileName, firstEvent, maxEvents);
 	else RawHitMapAll(fileName, firstEvent, maxEvents);
 }
+
 /* MARK: tracks */
 void TrackAnalysis(const char* fileName, const char* calibFile, ulong firstEvent=0, ulong maxEvents=0, const char* saveFile=nullptr) {
 	TApplication* app = new TApplication("myApp", 0, 0);

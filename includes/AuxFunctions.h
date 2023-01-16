@@ -21,6 +21,7 @@ inline uint64_t SortEntries(uint64_t& firstEvent, uint64_t& maxEvents, TTree* h1
     maxEvents = n - firstEvent;
 	return n;
 }
+
 /* ------------------------- */
 template<class A, class B>
 inline void TGraphFromVector(TGraph& t, std::vector<A> vX, std::vector<B> vY) {
@@ -29,6 +30,7 @@ inline void TGraphFromVector(TGraph& t, std::vector<A> vX, std::vector<B> vY) {
 		t.AddPoint((double)vX[i], (double)vY[i]);
 	}
 }
+
 /* ------------------------- */
 template<class T>  
 inline void QuickSwap(std::vector<T> &v, int i, int j) {
@@ -52,5 +54,3 @@ template<class T, class... Args>
 inline void ReleaseMalloc(T x, Args... args) {
 	free(x); ReleaseMalloc(args...);
 }
-
-/* ------------------------- */

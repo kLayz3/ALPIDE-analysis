@@ -51,6 +51,15 @@
 #include "TVectorT.h"
 #include "Rtypes.h"
 
+#define LEN(x) (sizeof x / sizeof *x)
+#define timeNow() std::chrono::high_resolution_clock::now()
+
+typedef uint32_t uint;
+typedef uint64_t ulong;
+using std::chrono::duration_cast;
+using std::chrono::seconds;
+using std::chrono::milliseconds;
+
 inline extern const std::vector<std::string> maskFile {
     "",       // there's no ALPIDE0
     "16BC8",  // corresponds to MOSAIC0.cfg --ALPIDE1
