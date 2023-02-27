@@ -25,29 +25,29 @@ The exe will cluster all the hits and write an output root file.
 A cluster is a connected region of fired pixels identified in a single event.
 
 Branch description:
->> CL\_NUM      : number of clusters in the event.
->> ALPIDE\_ID   : detector ID for each individual cluster.
->> CL\_SIZE     : cluster size for each cluster.
->> CL\_uCOL     : mean column position of each cluster.
->> CL\_uROW     : mean row position of each cluster.
->> CL\_uCOL\_SIG : uncertainty of CL\_uCOL, in units of col.
->> CL\_uROW\_SIG : uncertainty of CL\_uROW, in units of row.
+* CL_NUM      : number of clusters in the event.
+* ALPIDE_ID   : detector ID for each individual cluster.
+* CL_SIZE     : cluster size for each cluster.
+* CL_uCOL     : mean column position of each cluster.
+* CL_uROW     : mean row position of each cluster.
+* CL_uCOL_SIG : uncertainty of CL_uCOL, in units of col.
+* CL_uROW_SIG : uncertainty of CL_uROW, in units of row.
 
 Additional branches to show individual pixels clustered:
->> _N    : total number of pixels fired. Equals to sum of all CL_SIZE.
->> _COLV : pixels fired which belong to a cluster. First CL_SIZE[0] elements belong to 0th cluster,
->>         next CL\_SIZE[1] belong to 1st cluster, etc 
->> _ROWV : same but for rows.
+* _N    : total number of pixels fired. Equals to sum of all CL_SIZE.
+* _COLV : pixels fired which belong to a cluster. First CL_SIZE[0] elements belong to 0th cluster,
+*         next CL_SIZE[1] belong to 1st cluster, etc 
+* _ROWV : same but for rows.
 
 
 
 ```sh
-./calibrate --file=FILE_IN.root --output=FILE\_OUT.root --firstEvent=[fE](0) --max-events=[mE](-1)
+./calibrate --file=FILE_IN.root --output=FILE_OUT.root --firstEvent=[fE](0) --max-events=[mE](-1)
 		
---file=FILE\_IN.root         ..Input file.
+--file=FILE_IN.root         ..Input file.
 --first-event=N             ..Start from N-th event. Default 0.
 --max-events=N              ..Specify maximum number of events. Default all entries.
---output=FILE\_OUT.root      ..Specify output file name. Default same as input file with 'calib' suffix.
+--output=FILE_OUT.root      ..Specify output file name. Default same as input file with 'calib' suffix.
 --help                      ..Print this message to stdout.
 ```
 The exe will calibrate the detectors offsets `(dXi,dYi)` relative to ALPIDE1 and write an output root file.
