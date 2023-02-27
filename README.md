@@ -3,11 +3,10 @@ Framework for analysis of R3B & FRS EC experimental data involving the ALPIDE de
 At the moment, written for a telescope arrangement of a single-sensor detectors.
 To start, clone the repo and run make in the main directory.
 Executables existing so far are
-**
-- clusterise
+
+- **clusterise
 - calibrate
-- analyse
-**
+- analyse**
 
 Default arguments are in () brackets, and user arguments are in [].
 ```sh
@@ -43,7 +42,8 @@ in units of rows & columns.
 
 
 ```sh
-	./analyse --file=FILE_IN.root --output=FILE_OUT.root --firstEvent=[fE](0) --max-events=[mE](-1) --<OTHER_ARGS> 
+./analyse --file=FILE_IN.root --output=FILE_OUT.root --firstEvent=[fE](0) --max-events=[mE](-1) --<OTHER_ARGS> 
+
 --file=FILE_IN.root         ..Input file.
 --first-event=N             ..Start from N-th event. Default 0 
 --max-events=N	            ..Specify maximum number of events. Default all entries.
@@ -59,5 +59,3 @@ This exe can plot the hitmaps of all or specified detector(s). Works with either
 To do the tracking procedure pass `--track --cal=CAL_FILE.root --save=SAVE_FILE.root` flags. Works only for input files with clustered data.
 This will create a rootfile with `X,Y,Z` branches containing (calibrated) (x,y,z) hit positions that the algorithm recognized 
 could form a track. Tracks are only formed with 3 or more correlated hit points from the clustered data in a single event.
-
-# ALPIDE-analysis

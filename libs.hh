@@ -54,6 +54,13 @@
 #define LEN(x) (sizeof x / sizeof *x)
 #define timeNow() std::chrono::high_resolution_clock::now()
 
+#define KMAG  "\x1B[35m"
+#define KRED  "\x1B[31m"
+#define KBLUE  "\x1B[34m"
+#define KNRM  "\x1B[0m"
+#define KGRN  "\x1B[32m"
+#define KCYN  "\x1B[36m"
+
 typedef uint32_t uint;
 typedef uint64_t ulong;
 using std::chrono::duration_cast;
@@ -84,8 +91,22 @@ inline extern const std::string clusterise_help =
 --help                       ..Print this message to stdout. \n\
 \n\
 The exe will cluster all the hits and write an output root file.\n\
-A cluster is represented as a tuple<float,float,uint> \n\
-corresponding to (meanX, meanY, N) of the cluster. N is the size of the cluster.\n\
+\n\
+Branch description:\n\
+>> CL_NUM: number of clusters in the event.\n\
+>> ALPIDE_ID: detector ID for each individual cluster.\n\
+>> CL_SIZE: cluster size for each cluster.\n\
+>> CL_uCOL: mean column position of each cluster.\n\
+>> CL_uROW: mean row position of each cluster.\n\
+>> CL_uCOL_SIG: uncertainty of CL_uCOL, in units of col.\n\
+>> CL_uROW_SIG: uncertainty of CL_uROW, in units of row.\n\
+\n\
+Additional branches to show individual pixels clustered:\n\
+>> _N    : total number of pixels fired. Equals to sum of all CL_SIZE.\n\
+>> _COLV : pixels fired which belong to a cluster. First CL_SIZE[0] elements belong to 0th cluster,\n\
+>>         next CL_SIZE[1] belong to 1st cluster, etc \n\
+>> _ROWV : same but for rows.\n\
+\n\
 Good luck, have fun <(^.^)>\n\n";
 
 inline extern const std::string calibrate_help =
@@ -98,8 +119,9 @@ file=inputName.root          ..Input file.\n\
 --help                       ..Print this message to stdout. \n\
 \n\
 The exe will calibrate the detectors and write an output root file.\n\
-Calibration of (dx, dy) for each alpide with reference to the first ALPIDE is stored in the\n\
+Calibration of (dx,dy) for each ALPIDE detector with reference to the first ALPIDE is stored in the\n\
 aCol, bCol, aRow, bRow and corresponding sigma branches. 'a' is the slope of the fit line and 'b' the offset.\n\
+\n\
 Good luck, have fun <(^.^)>\n\n";
 
 inline extern const std::string analyse_help =
@@ -117,7 +139,8 @@ inline extern const std::string analyse_help =
 --help                       ..Print this message to stdout. \n\
 \n\
 This exe can plot the hitmaps of all or specific detector. Works with raw or clustered data.\n\
-To do tracking pass --track --cal=<calFile>.root flags. Works only for input files with clustered data. \n\n\
+To do tracking pass --track --cal=<calFile>.root flags. Works only for input files with clustered data. \n
+\n\
 Good luck, have fun <(^.^)>\n\n";
 
 #endif

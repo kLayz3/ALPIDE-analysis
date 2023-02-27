@@ -9,7 +9,7 @@ extern const std::string clusterise_help;
 using namespace std;
 using namespace AlpideClustering;
 
-void SetOneBranchAddress(TTree* h101, int x, uint* Col, uint* Row, uint& rowM, uint& colM) {
+void SetOneBranchAddress(TTree* h101, int x, uint32_t* Col, uint* Row, uint& rowM, uint& colM) {
     assert(x<=ALPIDE_NUM && x>=1);
     h101->SetBranchAddress(TString::Format("ALPIDE%dCOLv", x), Col);
     h101->SetBranchAddress(TString::Format("ALPIDE%dROWv", x), Row);
@@ -17,7 +17,7 @@ void SetOneBranchAddress(TTree* h101, int x, uint* Col, uint* Row, uint& rowM, u
     h101->SetBranchAddress(TString::Format("ALPIDE%dROW", x), &rowM);
 }
 
-void SetAllBranchAddress(TTree* h101, uint (*Col)[MAX_HITS], uint (*Row)[MAX_HITS], uint* rowM, uint* colM, uint& tHi, uint& tLo) {
+void SetAllBranchAddress(TTree* h101, uint32_t (*Col)[MAX_HITS], uint (*Row)[MAX_HITS], uint* rowM, uint* colM, uint& tHi, uint& tLo) {
 	if(!h101 || h101->IsZombie()) return;
 	for(int x=1; x<=ALPIDE_NUM; ++x) {
 		h101->SetBranchAddress(TString::Format("ALPIDE%dCOLv", x), Col[x]);
@@ -44,12 +44,18 @@ void CoarseClusterise(const char* fileName, const char* outFile, ulong firstEven
 	SetAllBranchAddress(h101, Col, Row, colM, rowM, tHi, tLo);
 	
 	/* MARK: Write containers */
-	uint cNum(0); // number of clusters
-	constexpr size_t MALLOC_SIZE = MAX_CLUSTERS * sizeof(float); // uint is same size
-	uint* AlpideID = static_cast<uint*>(malloc(MALLOC_SIZE)); // chip identifier: [1,2,3 ... ALPIDE_NUM];
-	uint* cSize = static_cast<uint*>(malloc(MALLOC_SIZE));      // sizes of each cluster
-	float* uCol = static_cast<float*>(malloc(MALLOC_SIZE));   // mean X of the cluster
-	float* uRow = static_cast<float*>(malloc(MALLOC_SIZE));   // mean Y of the cluster
+	uint32_t cNum{0}; // number of clusters
+	uint32_t AlpideID[MAX_CLUSTERS]; 
+	uint32_t cSize[MAX_CLUSTERS];
+
+	double uCol[MAX_CLUSTERS];
+	double uRow[MAX_CLUSTERS];
+	double uCol_SIG[MAX_CLUSTERS];
+	double uRow_SIG[MAX_CLUSTERS];
+
+	uint32_t _N{0};
+	uint32_t _ColV[MAX_CLUSTERS * 10];
+	uint32_t _RowV[MAX_CLUSTERS * 10];
 
 	TFile *out = new TFile(outFile, "RECREATE");
 	TTree *tree = new TTree("h101", "h101");
@@ -60,9 +66,14 @@ void CoarseClusterise(const char* fileName, const char* outFile, ulong firstEven
 	tree->Branch("CL_NUM", &cNum);
 	tree->Branch("ALPIDE_ID", AlpideID, "ALPIDE_ID[CL_NUM]/i");
 	tree->Branch("CL_SIZE", cSize, "CL_SIZE[CL_NUM]/i");
-	tree->Branch("CL_uCOL", uCol, "CL_uCOL[CL_NUM]/F");
-	tree->Branch("CL_uROW", uRow, "CL_uROW[CL_NUM]/F");	
-	
+	tree->Branch("CL_uCOL", uCol, "CL_uCOL[CL_NUM]/D");
+	tree->Branch("CL_uROW", uRow, "CL_uROW[CL_NUM]/D");	
+	tree->Branch("CL_uCOL_SIG", uCol_SIG, "CL_uCOL_SIG[CL_NUM]/D");
+	tree->Branch("CL_uROW_SIG", uRow_SIG, "CL_uROW_SIG[CL_NUM]/D");	
+	tree->Branch("_N", &_N);
+	tree->Branch("_COLV", _ColV, "_COLV[_N]/i");
+	tree->Branch("_ROWV", _RowV, "_ROWV[_N]/i");
+
 	auto t1 = timeNow();
 
 	ulong lastEvent = SortEntries(firstEvent, maxEvents, h101);
@@ -70,34 +81,43 @@ void CoarseClusterise(const char* fileName, const char* outFile, ulong firstEven
 
     ulong evCounter(0);
     for(ulong evNum = firstEvent; evNum < lastEvent; ++evNum) {
-        ++evCounter; if(evCounter%100 == 0) PrintProgress((float)evCounter/maxEvents);
+        ++evCounter; if(evCounter%100 == 0) PrintProgress((double)evCounter/maxEvents);
 		h101->GetEntry(evNum);
 	
-		cNum = 0; 
-		bitset<ALPIDE_NUM+1> b = mandatory;
+		cNum = 0; _N = 0;
+		std::bitset<ALPIDE_NUM+1> b = mandatory;
 		
 		/* MARK: clustering, i loops over all alpides {1,2,3 ... ALPIDE_NUM} */
 		for(int i=1; i<=ALPIDE_NUM; ++i) {
 			if(rowM[i]==0 || rowM[i] != colM[i]) continue;
+
 			auto clusters = ConstructClusters(Col[i], Row[i], rowM[i], veto);
 			if(clusters.size() == 0) continue;
 
 			b[i]=0;
+
 			for(auto& cluster : clusters) {
-				cSize[cNum] = FitCluster(cluster, uCol[cNum], uRow[cNum]); 
+				// Save cluster mean & sigma into the arguments //
+				cSize[cNum] = FitCluster(cluster, uCol[cNum],uRow[cNum], uCol_SIG[cNum],uRow_SIG[cNum]); 
 				AlpideID[cNum] = i;
 				++cNum;
+
+				for(auto [px,py] : cluster) {
+					_ColV[_N] = px;
+					_RowV[_N] = py;
+					++_N;
+				}
 			}
 		}
-		if(cNum>0 && b.none()) {
+
+		if(cNum>0 && b.none())
 			tree->Fill();
-		}
 	}
 
 	out->Write();
 	out->Close();
 	in->Close();
-	ReleaseMalloc(AlpideID, cSize, uCol, uRow);
+	//ReleaseMalloc(AlpideID, cSize, uCol, uRow);
 
     auto t2 = timeNow();
     cout << "\nTime taken: " << duration_cast<seconds>(t2-t1).count() << "s\n";

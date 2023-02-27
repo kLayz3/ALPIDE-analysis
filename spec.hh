@@ -1,9 +1,12 @@
 #ifndef SPEC_HH
 #define SPEC_HH
 
+#include "cmath"
+
 /* Chip specific defines */
 /* Pixel size in mm */
-#define PIXEL_SIZE_X 0.02924 // column  
+//#define PIXEL_SIZE_X 0.02924 // column  
+#define PIXEL_SIZE_X 0.02688 // column  --found lrose
 #define PIXEL_SIZE_Y 0.02924 // row 
 
 #define MAX_HITS 2048 /* max hits in raw root file per an event */

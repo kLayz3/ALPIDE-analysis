@@ -5,3 +5,9 @@ temp*
 *.root
 test
 saved*
+*.png
+
+# Saving some test scripts here
+# don't commit them just yet -.-
+/includes/new.d
+

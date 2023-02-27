@@ -13,10 +13,10 @@ using namespace AlpideClustering;
 uint cNum;
 uint AlpideID[MAX_CLUSTERS];
 uint cSize[MAX_CLUSTERS];
-float uCol[MAX_CLUSTERS];
-float uRow[MAX_CLUSTERS];
+double uCol[MAX_CLUSTERS];
+double uRow[MAX_CLUSTERS];
 
-void SetAllBranchAddress(TTree* h101, uint& cNum, uint* AlpideID, uint* cSize, float* uCol, float* uRow) {
+void SetAllBranchAddress(TTree* h101, uint& cNum, uint* AlpideID, uint* cSize, double* uCol, double* uRow) {
 	if(!h101 || h101->IsZombie()) return;
 	h101->SetBranchAddress("CL_NUM", &cNum);
 	h101->SetBranchAddress("ALPIDE_ID", AlpideID);
@@ -25,11 +25,12 @@ void SetAllBranchAddress(TTree* h101, uint& cNum, uint* AlpideID, uint* cSize, f
 }
 
 void Calibrate(const char* fileName, const char* outFile, ulong firstEvent=0, ulong maxEvents=0) {
-	/* File better contain info from all the possible alpides */ 
+	/* It's better if file contains info from all the possible alpides */ 
+
 	TFile* in = new TFile(fileName,"READ");
 	if(!in || in->IsZombie()) {cerr << "Can't open rootfile with name: " << fileName << "\n"; exit(EXIT_FAILURE);}
     TApplication* app = new TApplication("myApp", 0, 0);
-	TTree* h101 = static_cast<TTree*>(in->Get("h101"));
+	TTree* h101 = dynamic_cast<TTree*>(in->Get("h101"));
 
 	TFile* out = new TFile(outFile, "RECREATE");
 	
@@ -38,12 +39,15 @@ void Calibrate(const char* fileName, const char* outFile, ulong firstEvent=0, ul
 	TH2D* HitMapR[ALPIDE_NUM+1];
 	TH1D* HitMapPC[ALPIDE_NUM+1][1024];
 	TH1D* HitMapPR[ALPIDE_NUM+1][512];
+
 	TGraph* colCal[ALPIDE_NUM+1];
 	TGraph* colCalRes[ALPIDE_NUM+1];
 	TGraph* rowCal[ALPIDE_NUM+1];
 	TGraph* rowCalRes[ALPIDE_NUM+1];
+
 	TF1* rowLine;
 	TF1* colLine;
+
 	for(int i=1; i<=ALPIDE_NUM; i++) {
 		HitMapC[i] = new TH2D(TString::Format("HitMapC%d",i),TString::Format("HitMapC%d",i),1024,0,1024,1024,0,1024);
 		HitMapR[i] = new TH2D(TString::Format("HitMapR%d",i),TString::Format("HitMapR%d",i),512,0,512,512,0,512);
@@ -70,7 +74,7 @@ void Calibrate(const char* fileName, const char* outFile, ulong firstEvent=0, ul
 	ulong evCounter{0};
 	/* MARK: event loop */	
 	for(ulong evNum = firstEvent; evNum < lastEvent; ++evNum) {
-		++evCounter; if(evCounter%100 == 0) PrintProgress((float)evCounter/maxEvents);		
+		++evCounter; if(evCounter%100 == 0) PrintProgress((double)evCounter/maxEvents);		
 		h101->GetEntry(evNum);
 
 		for(uint i=0; i<cNum; ++i) {

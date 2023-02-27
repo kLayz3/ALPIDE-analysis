@@ -17,10 +17,10 @@ using namespace std;
 const double AlpideTrack::minZ = *std::min_element(Z_Alpide+1, Z_Alpide+ALPIDE_NUM+1);
 const double AlpideTrack::maxZ = *std::max_element(Z_Alpide+1, Z_Alpide+ALPIDE_NUM+1);
 const double AlpideTrack::meanZ = std::accumulate(Z_Alpide+1, Z_Alpide+ALPIDE_NUM+1, 0.)/ALPIDE_NUM;
-float AlpideTrack::tolCol = TOLERANCE;
-float AlpideTrack::tolRow = TOLERANCE;
+double AlpideTrack::tolCol = TOLERANCE;
+double AlpideTrack::tolRow = TOLERANCE;
 
-AlpideTrack::AlpideTrack(vector<int>& detV, vector<float>& colV, vector<float>& rowV, vector<uint>& sizeV) {
+AlpideTrack::AlpideTrack(vector<int>& detV, vector<double>& colV, vector<double>& rowV, vector<uint>& sizeV) {
 	bool isCollected[ALPIDE_NUM+1] = {0}; // indicator whether this detector is already included in the track
 	
 	auto d0 = detV[0]; auto c0 = colV[0]; auto r0 = rowV[0]; auto s0 = sizeV[0];
@@ -74,7 +74,7 @@ vector<double> AlpideTrack::YToRow() {
 void AlpideTrack::LoadCal(const char* fileName) {
 	TFile* in = new TFile(fileName,"READ");
 	if(!in || in->IsZombie()) {
-		cerr << "Can't open rootfile: " << fileName << __PRETTY_FUNCTION__ <<"\n";
+		cerr << "Can't open calib rootfile: " << fileName << __PRETTY_FUNCTION__ <<"\n";
 		aCol.fill(1.); aRow.fill(1.);
 		bCol.fill(0.); bRow.fill(0.);
 		return;
@@ -98,20 +98,23 @@ void AlpideTrack::LoadCal(const char* fileName) {
 }
 
 /* Calibrates colV and rowV vectors */
-void AlpideTrack::ColVCal(vector<int>& detV, vector<float>& colV) {
+void AlpideTrack::ColVCal(vector<int>& detV, vector<double>& colV) {
 	for(int i=0; i<detV.size(); ++i) {
 		auto d = detV[i]; // 1,2,3, ... ALPIDE_NUM
 		colV[i] = aCol[d] * colV[i] + bCol[d];
 	}
 }
-void AlpideTrack::RowVCal(vector<int>& detV, vector<float>& rowV) {
+void AlpideTrack::RowVCal(vector<int>& detV, vector<double>& rowV) {
 	for(int i=0; i<detV.size(); ++i) {
 		auto d = detV[i];
 		rowV[i] = aRow[d] * rowV[i] + bRow[d];
 	}
 }
 
-void AlpideTrack::PushData(int det, float col, float row, uint size) {
+void AlpideTrack::AngleXTolerance(double angle) {}
+void AlpideTrack::AngleYTolerance(double angle) {}
+
+void AlpideTrack::PushData(int det, double col, double row, uint size) {
 	(this->tDet).push_back(det);
 	tZ.push_back(DetToZ(det));
 	tX.push_back(ColToX(col));
@@ -119,7 +122,7 @@ void AlpideTrack::PushData(int det, float col, float row, uint size) {
 	tSize.push_back(size);
 }
 
-bool AlpideTrack::IsInTrack(int d0, float c0, float r0, int d1, int c1, int r1) {
+bool AlpideTrack::IsInTrack(int d0, double c0, double r0, int d1, double c1, double r1) {
 	int d = abs(d1 - d0);
 	if((abs(c1-c0) < d*tolCol) && (abs(r1-r0) < d*tolRow)) return true;
 	else return false;

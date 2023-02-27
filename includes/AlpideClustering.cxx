@@ -2,10 +2,13 @@
 #include "AuxFunctions.h"
 #include <cmath>
 
+//#include<random>
+
+
 using namespace std;
 using namespace AlpideClustering;
 
-unsigned AlpideClustering::DistXY(const Point& p1, const Point& p2) {
+uint32_t AlpideClustering::DistXY(const Point& p1, const Point& p2) { //obsolete
 	return abs((int)p1.col - (int)p2.col) + abs((int)p1.row - (int)p2.row);
 }
 
@@ -14,88 +17,103 @@ bool AlpideClustering::IsNeighbour(const Point& p1, const Point& p2) {
     return false;
 }
 bool AlpideClustering::IsInCluster(const Point& p0, const vector<Point>& cluster) {
-    for(unsigned i=0; i<cluster.size(); ++i) {
+    for(uint32_t i=0; i<cluster.size(); ++i) {
         if(IsNeighbour(p0, cluster[i]))
             return true;
     }
     return false;
 }
 
-vector<Point> AlpideClustering::MakeCluster(Point& p0, vector<Point>& hits) {
-    vector<Point> cluster;
-    cluster.push_back(p0);
-    bool pointFound(true);
-    while(pointFound) {
-        pointFound = false;
-        for(unsigned i=0; i<hits.size(); ++i) {
-            if(IsInCluster(hits[i], cluster)) {
-                cluster.push_back(hits[i]);
-                QuickErase(hits, i); 
-                --i;
-                pointFound = true;
-            }
-        }   
-    }   
-    return cluster;
+vector<Point> AlpideClustering::MakeCluster(vector<Point>& hits) {
+	vector<Point> cluster;
+	Point p0 = hits[0];
+	cluster.push_back(p0);
+
+	/* If the 'distance' from a hits[i] to p0 is greater than 
+	 * some value (set here as 100) then we can assume it's not part of the cluster.
+	 * Hence it gets swapped with last 'interesting' hit, which 
+	 * is at index j */
+
+	int j = hits.size() - 1;
+
+	bool pointFound = true;
+	while(pointFound) {
+		pointFound = false;
+		for(int i=1; i<=j; ++i) {
+			if(DistXY(p0, hits[i]) > 100) {
+				QuickSwap(hits, i, j);
+				--i; --j;
+			}
+			else if(IsInCluster(hits[i], cluster)) {
+				cluster.push_back(hits[i]);
+				QuickSwap(hits, i, j);
+				QuickErase(hits, j);
+				--i; --j;
+				pointFound = true;
+			}
+		}
+	}
+	QuickErase(hits,0);
+	return cluster;
 }
 
-vector<vector<Point>> AlpideClustering::ConstructClusters(unsigned* ColArray, unsigned* RowArray, unsigned N, int veto) {
+vector<vector<Point>> AlpideClustering::ConstructClusters(uint32_t* ColArray, uint32_t* RowArray, uint32_t N, int veto) {
     vector<Point> hits;
-    for(unsigned i=0; i<N; ++i) 
-        hits.emplace_back(Point(ColArray[i], RowArray[i]));
+    for(uint32_t i=0; i<N; ++i) 
+        hits.push_back(Point(ColArray[i], RowArray[i]));
 
     vector<vector<Point>> clusters;
 
-    /* Initially mark a point an anchor. Go over all points left
-     * in the initial vector. Find neighbours. Continue
-     * the iteration until no new neighbours exist from
-     * remaining points. That makes the cluster isolated. 
+    /* Make isolated cluster around hits[0] with the MakeCluster(hits) call.
+	 * Keep doing until hits size reaches 0
 	 * Supply veto to not save clusters with size <= veto. Default 0 */
 
     while(hits.size() > 0) { /* Start a new cluster around hits[0] */
-        Point p0 = hits[0];
-        QuickErase(hits, 0); 
-        auto cluster = MakeCluster(p0, hits);
-        if(cluster.size() > veto) clusters.emplace_back(cluster); 
+		auto cluster = MakeCluster(hits);
+        if(cluster.size() > veto) clusters.push_back(cluster);
     }
+
     return clusters;
 }
 
-unsigned AlpideClustering::FitCluster(const vector<Point>& cluster, float& uX, float& uY, float& sX, float& sY) {
+uint32_t AlpideClustering::FitCluster(const vector<Point>& cluster, double& uX, double& uY, double& sX, double& sY) {
     int N = cluster.size();
 	if(N==0) {uX=0; uY=0; sX=0; sY=0; return 0;}
-    float meanX(0.); float sigmaX(0.); //col
-    float meanY(0.); float sigmaY(0.); //row
-    for(auto& p : cluster) {
-        meanX += p.col; sigmaX += p.col*p.col;
-        meanY += p.row; sigmaY += p.row*p.row;
+	uint32_t meanX{0}; uint64_t sigmaX{0}; //col
+    uint32_t meanY{0}; uint64_t sigmaY{0}; //row
+    for(auto p : cluster) {
+        meanX += p.col; sigmaX += (uint64_t)(p.col*p.col);
+        meanY += p.row; sigmaY += (uint64_t)(p.row*p.row);
     }
-    meanX  = meanX/N;
-    meanY  = meanY/N;
+    uX  = (double)meanX/N;
+    uY  = (double)meanY/N;
     
     /* For sigma=0 can underflow and throw exception, annoying */
-    sigmaX = sigmaX/N - meanX*meanX;
-    sigmaX = (sigmaX>0) ? sqrt(sigmaX) : 0; 
-    sigmaY = sigmaY/N - meanY*meanY;
-    sigmaY = (sigmaY>0) ? sqrt(sigmaY) : 0;
+    sX = (double)sigmaX/N - uX*uX;
+    sX = (sX>0) ? sqrt(sX) : 0.0; 
+    sY = (double)sigmaY/N - uY*uY;
+    sY = (sY>0) ? sqrt(sY) : 0.0; 
 
-	/* Bind to arguments finally -> faster runtime when doing calculations on local stack variables 
-	 * rather than passed-by-reference variables -- M.B. */
-	uX = meanX; uY = meanY; sX = sigmaX; sY = sigmaY;
     return N;
 }
 
-unsigned AlpideClustering::FitCluster(const vector<Point>& cluster, float& uX, float& uY) {
+uint32_t AlpideClustering::FitCluster(const vector<Point>& cluster, double& uX, double& uY) {
     int N = cluster.size();
 	if(N==0) {uX=0; uY=0; return 0;}
-    float meanX(0.); //col
-    float meanY(0.); //row
-    for(auto& p : cluster) {
+    uint32_t meanX(0); //col
+    uint32_t meanY(0); //row
+    for(auto& p : cluster) { 
         meanX += p.col; 
         meanY += p.row;
     }
-    meanX  = meanX/N;
-    meanY  = meanY/N;	
-	uX = meanX; uY = meanY;
+    //Luke 
+/*    std::random_device rd{};
+    std::mt19937 gen{rd()};
+   std::normal_distribution<> randX(0,26e-03/2.);
+   std::normal_distribution<> randY(0,29e-03/2.);
+  */
+    uX  = ((double)meanX/N);//+(randX(gen)*(double)N);//Idea smeer wrt how many pixels x/2 as half the pixel width if we assume center of pixel? --May need modifying
+    uY  = ((double)meanY/N);//+(randY(gen)*(double)N);
     return N;
 }
+

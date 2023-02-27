@@ -4,7 +4,6 @@
 #include "AuxFunctions.h"
 #include "libs.hh"
 #include "spec.hh"
-
 #define MAX_TRACKS 128
 
 extern const std::string analyse_help; 
@@ -34,7 +33,7 @@ void SetAllBranchAddressRaw(TTree* h101, uint (*Col)[MAX_HITS], uint (*Row)[MAX_
 	h101->SetBranchAddress("ALPIDE1T_LO", &tLo);
 }
 
-void SetAllBranchAddressClust(TTree* h101, uint& cNum, uint* AlpideID, uint* cSize, float* uCol, float* uRow, uint& tHi, uint& tLo) {
+void SetAllBranchAddressClust(TTree* h101, uint& cNum, uint* AlpideID, uint* cSize, double* uCol, double* uRow, uint& tHi, uint& tLo) {
 	if(!h101 || h101->IsZombie()) return;
 	h101->SetBranchAddress("T_HI", &tHi);
 	h101->SetBranchAddress("T_LO", &tLo);
@@ -67,7 +66,7 @@ auto main(int argc, char* argv[]) -> int {
 
 	if(!ParseCmdLine("file", fileName, argc, argv)) {
 		cerr << "No file specified!\n";
-		cout << clusterise_help; return 0;
+		cout << analyse_help; return 0;
 	}	
 	if(ParseCmdLine("first-event", pStr, argc, argv)) {
 		try {
@@ -141,7 +140,7 @@ void RawHitMap(const char* fileName, int x, ulong firstEvent=0, ulong maxEvents=
 	ulong evCounter{0};
 
 	for(ulong evNum = firstEvent; evNum < lastEvent; ++evNum) {
-		++evCounter; if(evCounter%100 == 0) PrintProgress((float)evCounter/maxEvents);		
+		++evCounter; if(evCounter%100 == 0) PrintProgress((double)evCounter/maxEvents);		
 		h101->GetEntry(evNum);
 		if(colM == 0 || colM != rowM) continue;
 		for(int i=0; i<colM; ++i) {
@@ -184,7 +183,7 @@ void RawHitMapAll(const char* fileName, ulong firstEvent=0, ulong maxEvents=0) {
 	ulong evCounter{0};
 
 	for(ulong evNum = firstEvent; evNum < lastEvent; ++evNum) {
-		++evCounter; if(evCounter%100 == 0) PrintProgress((float)evCounter/maxEvents);		
+		++evCounter; if(evCounter%100 == 0) PrintProgress((double)evCounter/maxEvents);		
 		h101->GetEntry(evNum);
 		for(int x=1; x<=ALPIDE_NUM; ++x) {
 			if(colM[x] == 0 || colM[x] != rowM[x]) continue;
@@ -230,7 +229,7 @@ void RawCorrelation(const char* fileName, int x, int y, ulong firstEvent, ulong 
 	ulong evCounter{0};
 
 	for(ulong evNum = firstEvent; evNum < lastEvent; ++evNum) {
-		++evCounter; if(evCounter%100 == 0) PrintProgress((float)evCounter/maxEvents);		
+		++evCounter; if(evCounter%100 == 0) PrintProgress((double)evCounter/maxEvents);		
 		h101->GetEntry(evNum);
 		if(colM[x] == 0 || colM[y] == 0 || colM[x]!=rowM[x] || colM[y]!=rowM[y]) continue;
 		for(int i=0; i<colM[x]; ++i) {
@@ -265,8 +264,8 @@ void ClustHitMap(const char* fileName, int x, ulong firstEvent=0, ulong maxEvent
 	uint cNum, tHi, tLo;
 	uint AlpideID[MAX_CLUSTERS];
 	uint cSize[MAX_CLUSTERS];
-	float uCol[MAX_CLUSTERS];
-	float uRow[MAX_CLUSTERS];
+	double uCol[MAX_CLUSTERS];
+	double uRow[MAX_CLUSTERS];
 	SetAllBranchAddressClust(h101, cNum, AlpideID, cSize, uCol, uRow, tHi, tLo);
 
 	TH2D* hRawHit = new TH2D(TString::Format("Clust Hitmap ALPIDE%d", x), TString::Format("Clust Hitmap ALPIDE%d", x), 1024,0,1024,512,0,512);  
@@ -276,7 +275,7 @@ void ClustHitMap(const char* fileName, int x, ulong firstEvent=0, ulong maxEvent
 	ulong evCounter{0};
 
 	for(ulong evNum = firstEvent; evNum < lastEvent; ++evNum) {
-		++evCounter; if(evCounter%100 == 0) PrintProgress((float)evCounter/maxEvents);		
+		++evCounter; if(evCounter%100 == 0) PrintProgress((double)evCounter/maxEvents);		
 		h101->GetEntry(evNum);
 
 		for(uint c=0; c<cNum; ++c) {
@@ -305,8 +304,8 @@ void ClustHitMapAll(const char* fileName, int x, ulong firstEvent=0, ulong maxEv
 	uint cNum, tHi, tLo;
 	uint AlpideID[MAX_CLUSTERS];
 	uint cSize[MAX_CLUSTERS];
-	float uCol[MAX_CLUSTERS];
-	float uRow[MAX_CLUSTERS];
+	double uCol[MAX_CLUSTERS];
+	double uRow[MAX_CLUSTERS];
 	SetAllBranchAddressClust(h101, cNum, AlpideID, cSize, uCol, uRow, tHi, tLo);
 
 	TH2D* hRawHit[ALPIDE_NUM+1];
@@ -321,7 +320,7 @@ void ClustHitMapAll(const char* fileName, int x, ulong firstEvent=0, ulong maxEv
 	ulong evCounter{0};
 
 	for(ulong evNum = firstEvent; evNum < lastEvent; ++evNum) {
-		++evCounter; if(evCounter%100 == 0) PrintProgress((float)evCounter/maxEvents);		
+		++evCounter; if(evCounter%100 == 0) PrintProgress((double)evCounter/maxEvents);		
 		h101->GetEntry(evNum);
 
 		for(uint c=0; c<cNum; ++c) {
@@ -380,8 +379,8 @@ void TrackAnalysis(const char* fileName, const char* calibFile, ulong firstEvent
 	uint cNum, tHi, tLo;
 	uint AlpideID[MAX_CLUSTERS];
 	uint cSize[MAX_CLUSTERS];
-	float uCol[MAX_CLUSTERS];
-	float uRow[MAX_CLUSTERS];
+	double uCol[MAX_CLUSTERS];
+	double uRow[MAX_CLUSTERS];
 
 	SetAllBranchAddressClust(h101, cNum, AlpideID, cSize, uCol, uRow, tHi, tLo);
 	TH1D* hPhiX = new TH1D("PhiX ALPIDE", "PhiX ALPIDE", 300, -0.03, 0.03); 
@@ -413,18 +412,26 @@ void TrackAnalysis(const char* fileName, const char* calibFile, ulong firstEvent
 		tree->Branch("PHI_X", &phiX);
 		tree->Branch("PHI_Y", &phiY);
 	}
+	uint32_t seed = std::chrono::system_clock::now().time_since_epoch().count();
+	auto rng = std::default_random_engine(seed);
+	auto gauss = std::normal_distribution<double>(0.0, 0.3);
+
 	ulong lastEvent = SortEntries(firstEvent, maxEvents, h101);
 	printf("Entries in file: %lld\n", h101->GetEntries());
 	ulong evCounter{0};
-
+	
 	for(ulong evNum = firstEvent; evNum < lastEvent; ++evNum) {
-		++evCounter; if(evCounter%100 == 0) PrintProgress((float)evCounter/maxEvents);		
+		++evCounter; if(evCounter%100 == 0) PrintProgress((double)evCounter/maxEvents);		
 		h101->GetEntry(evNum);
 		if(cNum<3) continue;
 
 		vector<int> detV(AlpideID, AlpideID + cNum);
-		vector<float> colV(uCol, uCol + cNum);
-		vector<float> rowV(uRow, uRow + cNum);
+		vector<double> colV(uCol, uCol + cNum); //add some gaussian smear here
+		vector<double> rowV(uRow, uRow + cNum); //add some gaussian smear here
+		for(int i=0; i<cNum; ++i) {
+			colV[i] += 1.0/sqrt(cSize[i]) * gauss(rng);
+			rowV[i] += 1.0/sqrt(cSize[i]) * gauss(rng);
+		}
 		vector<uint> sizeV(cSize, cSize + cNum);
 		
 		/* Calibrate row & col first */
