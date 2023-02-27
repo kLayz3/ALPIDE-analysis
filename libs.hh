@@ -80,7 +80,7 @@ inline extern const std::vector<std::string> maskFile {
 
 inline extern const std::string clusterise_help =
 "\nUsage: ./clusterise <OPT1> <OPT2> ...\n\
-		\n\
+\n\
 --file=inputName.root        ..Input file.\n\
 --first-event=N              ..Start from N-th event. Default 0. \n\
 --max-events=N               ..Specify maximum number of events. Default all entries.\n\
@@ -93,13 +93,13 @@ inline extern const std::string clusterise_help =
 The exe will cluster all the hits and write an output root file.\n\
 \n\
 Branch description:\n\
->> CL_NUM: number of clusters in the event.\n\
->> ALPIDE_ID: detector ID for each individual cluster.\n\
->> CL_SIZE: cluster size for each cluster.\n\
->> CL_uCOL: mean column position of each cluster.\n\
->> CL_uROW: mean row position of each cluster.\n\
->> CL_uCOL_SIG: uncertainty of CL_uCOL, in units of col.\n\
->> CL_uROW_SIG: uncertainty of CL_uROW, in units of row.\n\
+>> CL_NUM      : number of clusters in the event.\n\
+>> ALPIDE_ID   : detector ID for each individual cluster.\n\
+>> CL_SIZE     : cluster size for each cluster.\n\
+>> CL_uCOL     : mean column position of each cluster.\n\
+>> CL_uROW     : mean row position of each cluster.\n\
+>> CL_uCOL_SIG : uncertainty of CL_uCOL, in units of col.\n\
+>> CL_uROW_SIG : uncertainty of CL_uROW, in units of row.\n\
 \n\
 Additional branches to show individual pixels clustered:\n\
 >> _N    : total number of pixels fired. Equals to sum of all CL_SIZE.\n\
@@ -111,7 +111,7 @@ Good luck, have fun <(^.^)>\n\n";
 
 inline extern const std::string calibrate_help =
 "\nUsage: ./calibrate <OPT1> <OPT2> ...\n\
-		\n\
+\n\
 file=inputName.root          ..Input file.\n\
 --first-event=N              ..Start from N-th event. Default 0. \n\
 --max-events=N               ..Specify maximum number of events. Default all entries.\n\
@@ -126,7 +126,7 @@ Good luck, have fun <(^.^)>\n\n";
 
 inline extern const std::string analyse_help =
 "\nUsage: ./analyse <OPT1> <OPT2> ...\n\
-		\n\
+\n\
 --file=inputName.root        --Input file.\n\
 --first-event=N              ..Start from N-th event. Default 0 \n\
 --max-events=N	             ..Specify maximum number of events. Default all entries.\n\
@@ -139,7 +139,7 @@ inline extern const std::string analyse_help =
 --help                       ..Print this message to stdout. \n\
 \n\
 This exe can plot the hitmaps of all or specific detector. Works with raw or clustered data.\n\
-To do tracking pass --track --cal=<calFile>.root flags. Works only for input files with clustered data. \n
+To do tracking pass --track --cal=<calFile>.root flags. Works only for input files with clustered data. \n\
 \n\
 Good luck, have fun <(^.^)>\n\n";
 
