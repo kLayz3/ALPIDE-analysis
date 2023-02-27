@@ -25,19 +25,18 @@ The exe will cluster all the hits and write an output root file.
 A cluster is a connected region of fired pixels identified in a single event.
 
 Branch description:
-* CL_NUM      : number of clusters in the event.
-* ALPIDE_ID   : detector ID for each individual cluster.
-* CL_SIZE     : cluster size for each cluster.
-* CL_uCOL     : mean column position of each cluster.
-* CL_uROW     : mean row position of each cluster.
-* CL_uCOL_SIG : uncertainty of CL_uCOL, in units of col.
-* CL_uROW_SIG : uncertainty of CL_uROW, in units of row.
+* `CL_NUM`      : number of clusters in the event.
+* `ALPIDE_ID`   : detector ID for each individual cluster.
+* `CL_SIZE`     : cluster size for each cluster.
+* `CL_uCOL`     : mean column position of each cluster.
+* `CL_uROW`     : mean row position of each cluster.
+* `CL_uCOL_SIG` : uncertainty of `CL_uCOL`, in units of col.
+* `CL_uROW_SIG` : uncertainty of `CL_uROW`, in units of row.
 
 Additional branches to show individual pixels clustered:
-* _N    : total number of pixels fired. Equals to sum of all CL_SIZE.
-* _COLV : pixels fired which belong to a cluster. First CL_SIZE[0] elements belong to 0th cluster,
-*         next CL_SIZE[1] belong to 1st cluster, etc 
-* _ROWV : same but for rows.
+* `_N`    : total number of pixels fired. Equals to sum of all `CL_SIZE`.
+* `_COLV` : pixels fired which belong to a cluster. First `CL_SIZE[0]` elements belong to 0th cluster, next `CL_SIZE[1]` belong to 1st cluster, etc. 
+* `_ROWV` : same but for rows.
 
 
 
