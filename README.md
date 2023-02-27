@@ -15,7 +15,7 @@ Default arguments are in () brackets, and user arguments are in [].
 --file=FILE_IN.root         ..Input file.
 --first-event=N             ..Start from N-th event. Default 0. 
 --max-events=N              ..Specify maximum number of events. Default all entries.
---veto=N                    ..Only consider clusters with size>N. Default 1.
+--veto=N                    ..Only consider clusters with size>N. Default 0.
 --output=FILE_OUT.root      ..Write clusterised data in this file. Default $(FILE_IN)_cl.root.
 --dets=[d1,d2,..]           ..Condition to only write events which have clusters in every specified detectors.
       =all				    ..Equivalent to dets=1,2,..,ALPIDE_NUM. Every event must contain a cluster in all detectors.

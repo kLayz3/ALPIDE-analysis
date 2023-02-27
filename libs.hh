@@ -84,13 +84,14 @@ inline extern const std::string clusterise_help =
 --file=inputName.root        ..Input file.\n\
 --first-event=N              ..Start from N-th event. Default 0. \n\
 --max-events=N               ..Specify maximum number of events. Default all entries.\n\
---veto=N                     ..Only consider clusters with size>N. Default N=1.\n\
+--veto=N                     ..Only consider clusters with size>N. Default N=0.\n\
 --output=/PATH/TO/OUT.root   ..Specify output file name. Default same as input file with 'cl' suffix.\n\
 --dets=[d1,d2,..]            ..Condition to only write events which have clusters in specified detectors.\n\
       =all				     ..Equivalent to dets=1,2,...,ALPIDE_NUM. Every event must contain a cluster in all detectors.\n\
 --help                       ..Print this message to stdout. \n\
 \n\
 The exe will cluster all the hits and write an output root file.\n\
+A cluster is a connected region of fired pixels identified in a single event.\n\
 \n\
 Branch description:\n\
 >> CL_NUM      : number of clusters in the event.\n\

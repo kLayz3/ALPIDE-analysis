@@ -29,7 +29,7 @@ void SetAllBranchAddress(TTree* h101, uint32_t (*Col)[MAX_HITS], uint (*Row)[MAX
 	h101->SetBranchAddress("ALPIDE1T_LO", &tLo);
 }
 
-void CoarseClusterise(const char* fileName, const char* outFile, ulong firstEvent=0, ulong maxEvents=0, int veto=1, const std::bitset<ALPIDE_NUM+1> mandatory = {0}) {	
+void CoarseClusterise(const char* fileName, const char* outFile, ulong firstEvent=0, ulong maxEvents=0, int veto=0, const std::bitset<ALPIDE_NUM+1> mandatory = {0}) {	
 	TFile* in = new TFile(fileName,"READ");
     if(!in || in->IsZombie()) {cerr << "Can't open rootfile with name: " << fileName << "\n"; exit(EXIT_FAILURE);}
     TTree* h101 = static_cast<TTree*>(in->Get("h101"));
@@ -131,7 +131,7 @@ auto main(int argc, char* argv[]) -> int {
 	string outFile;
     ulong firstEvent(0);
     ulong maxEvents(0);
-    int veto(1);
+    int veto(0);
 	std::bitset<ALPIDE_NUM+1> mandatory{0};
     
     if(!ParseCmdLine("file", fileName, argc, argv)) {
