@@ -106,14 +106,8 @@ uint32_t AlpideClustering::FitCluster(const vector<Point>& cluster, double& uX, 
         meanX += p.col; 
         meanY += p.row;
     }
-    //Luke 
-/*    std::random_device rd{};
-    std::mt19937 gen{rd()};
-   std::normal_distribution<> randX(0,26e-03/2.);
-   std::normal_distribution<> randY(0,29e-03/2.);
-  */
-    uX  = ((double)meanX/N);//+(randX(gen)*(double)N);//Idea smeer wrt how many pixels x/2 as half the pixel width if we assume center of pixel? --May need modifying
-    uY  = ((double)meanY/N);//+(randY(gen)*(double)N);
+    uX  = ((double)meanX/N);    
+	uY  = ((double)meanY/N);
     return N;
 }
 
