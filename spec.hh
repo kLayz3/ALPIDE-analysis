@@ -22,7 +22,7 @@
 #define MAX_CHIP_ID 6
 /* X,Y,Z-coordinates of each ALPIDE chip detector in the setup. in mm */
 
-inline double alpide_def_pos[MAX_BOARDS][MAX_CHIP_ID+1][3];
+inline double alpide_def_pos[MAX_BOARD_ID][MAX_CHIP_ID+1][3];
 //           boardId -----^            ^         ^---- X=0,Y=1,Z=2
 //                         chipId -----^
 

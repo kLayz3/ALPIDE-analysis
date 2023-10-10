@@ -11,13 +11,16 @@ CFLAGS+=$(shell root-config --cflags)\
 LDFLAGS:=$(shell root-config --ldflags)
 ROOTLIBS:=$(shell root-config --libs)
 
-SRC:=$(wildcard $(SRC_DIR)/*.cc)
+#SRC:=$(wildcard $(SRC_DIR)/*.cc)
+SRC:=$(SRC_DIR)/clusterise.cc
+
+EXE:=$(patsubst $(SRC_DIR)/%.cc, %, $(SRC))
+
 INC:=$(wildcard $(INC_DIR)/*.cxx)
 
 OBJ:=$(patsubst $(SRC_DIR)/%.cc,  $(BUILD_DIR)/%.o,   $(SRC))\
 	 $(patsubst $(INC_DIR)/%.cxx, $(BUILD_DIR)/%.oxx, $(INC))
 
-EXE:=$(patsubst $(SRC_DIR)/%.cc, %, $(SRC))
 
 MKDIR = mkdir -p $(@D)
 

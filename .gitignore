@@ -6,6 +6,7 @@ temp*
 test
 saved*
 *.png
+analyse clusterise calibrate
 
 # Saving some test scripts here
 # don't commit them just yet -.-

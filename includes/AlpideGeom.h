@@ -2,6 +2,7 @@
 #define ALPIDE_GEOM_H
 
 #include "spec.hh"
+#include <cstdint>
 
 /* This is a class wrapping the container 
  * of positions of individual chips. */

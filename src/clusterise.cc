@@ -27,7 +27,8 @@ vector<uint32_t> SetReadBranchAddresses(TTree* h101, uint64_t* ts, uint32_t* nPi
 
 		valid_mosaics.push_back(x);
 	}
-	if(valid_mosaics.size() == 0) throw std::runtime_error("SetReadBranchAddresses: couldn't find a single valid MOSAIC branch.");
+	if(valid_mosaics.size() == 0) throw std::runtime_error("SetReadBranchAddresses: couldn't find a single valid MOSAIC branch.\n\
+			Expecting branches with names: MOSAIC%dCHIP etc.");
 	return valid_mosaics;
 }
 

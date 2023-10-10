@@ -1,6 +1,10 @@
 #include "AlpideGeom.h"
 #include "cmath"
 #include "algorithm"
+#include <cstdio>
+#include <cstring>
+#include <cassert>
+#include <string>
 
 AlpideGeom::AlpideGeom() {
 	_end_ptr = (double*)pos + (MAX_BOARD_ID+1)*(MAX_CHIP_ID+1)*3;
@@ -18,9 +22,9 @@ void AlpideGeom::SetDefaultPositions() {
 
 template<uint32_t n>
 std::vector<double> AlpideGeom::Get(uint32_t boardId) {
-	static_assert(n < 3, __PRETTY_FUNCTION__ " template parameter must be one of (0,1,2) = (X,Y,Z).\n");
-	assert(boardId <= MAX_BOARD_ID && 
-			__PRETTY_FUNCTION__ " , argument but be <= " std::to_string(MAX_BOARD_ID).c_str());
+	static_assert(n < 3, "AlpideGeom<>::Get() : template parameter must be one of (0,1,2) = (X,Y,Z).\n");
+	assert(boardId <= MAX_BOARD_ID);
+	//std::string("AlpideGeom<>::Get(uint32_t) , argument but be <= ") + std::to_string(MAX_BOARD_ID));
 	std::vector<double> v;
 	for(int chip=0; chip <= MAX_CHIP_ID; ++chip) {
 		v.push_back(pos[boardId][chip][n]);
@@ -30,13 +34,16 @@ std::vector<double> AlpideGeom::Get(uint32_t boardId) {
 
 template<uint32_t n>
 std::vector<double> AlpideGeom::Get() {
-	static_assert(n < 3, __PRETTY_FUNCTION__ " template parameter must be one of (0,1,2) = (X,Y,Z).\n");
+	static_assert(n < 3, "AlpideGeom<>::Get() : template parameter must be one of (0,1,2) = (X,Y,Z).\n");
 	std::vector<double> v;
 	double* slider = (double*)pos + n;
 	double* end = (double*)pos + (MAX_BOARD_ID+1)*(MAX_CHIP_ID+1)*3;
+
+	/*
 	while(slider < end) {
 		if(isnormal(*slider)) v.push_back(*slider);
 	}
+	*/
 
 	return v;
 }
