@@ -1,5 +1,5 @@
-#ifndef ALPIDECLUSTERING_H
-#define ALPIDECLUSTERING_H
+#ifndef ALPIDE_CLUSTERING_H
+#define ALPIDE_CLUSTERING_H
 
 #include <vector>
 #include <tuple>
@@ -22,11 +22,16 @@ namespace AlpideClustering {
 		}
     };
 
-	uint32_t DistXY(const Point& p1, const Point& p2);
-    bool IsNeighbour(const Point& p1, const Point& p2);
-    bool IsInCluster(const Point& p0, const std::vector<Point>& cluster);
+	typedef std::vector<Point> Cluster;
+	typedef std::vector<Cluster> ClusterVec;
+
+	uint32_t DistXY(const Point p1, const Point p2);
+    inline bool IsNeighbour(const Point p1, const Point p2);
+    bool IsInCluster(const Point p0, const std::vector<Point>& cluster);
     std::vector<Point> MakeCluster(std::vector<Point>& hits);
-    std::vector<std::vector<Point>> ConstructClusters(uint32_t* ColArray, uint32_t* RowArray, uint32_t N, int veto=0); 
+
+    std::vector<std::pair<uint32_t, ClusterVec>> ConstructClusters(uint32_t* chipArray, uint32_t* ColArray, uint32_t* RowArray, uint32_t N, int veto=0); 
+	// ----> chipId ------^^^^^^^^
     uint32_t FitCluster(const std::vector<Point>& cluster, double& uX, double& uY, double& sX, double& sY);
     uint32_t FitCluster(const std::vector<Point>& cluster, double& uX, double& uY);
 

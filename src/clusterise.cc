@@ -8,73 +8,85 @@ extern const std::string clusterise_help;
 
 using namespace std;
 using namespace AlpideClustering;
+using namespace AlpideAuxFunctions;
 
-void SetOneBranchAddress(TTree* h101, int x, uint32_t* Col, uint* Row, uint& rowM, uint& colM) {
-    assert(x<=ALPIDE_NUM && x>=1);
-    h101->SetBranchAddress(TString::Format("ALPIDE%dCOLv", x), Col);
-    h101->SetBranchAddress(TString::Format("ALPIDE%dROWv", x), Row);
-    h101->SetBranchAddress(TString::Format("ALPIDE%dCOL", x), &colM);
-    h101->SetBranchAddress(TString::Format("ALPIDE%dROW", x), &rowM);
-}
+vector<uint32_t> SetReadBranchAddresses(TTree* h101, uint64_t* ts, uint32_t* nPix, uint32_t (*Chip)[MAX_HITS], uint32_t (*Col)[MAX_HITS], uint (*Row)[MAX_HITS]) {
+	if(!h101 || h101->IsZombie()) throw std::runtime_error("Bad TTree pointer passed to SetAllBranchAddress.");
+	/* Try to find all MOSAIC##x##CHIP branches in the TTree */ 
+	vector<uint32_t> valid_mosaics;
+	TObjArray* branch_names = h101->GetListOfBranches();
+	for(int x=0; x<256; ++x) {
+		if(branch_names->FindObject(TString::Format("MOSAIC%dCHIP", x)) == nullptr) continue;
+		
+		h101->SetBranchAddress(TString::Format("MOSAIC%dT_LO", x), (uint32_t*)&ts[x]);
+		h101->SetBranchAddress(TString::Format("MOSAIC%dT_HI", x), (uint32_t*)((char*)&ts[x] + 4));
+		h101->SetBranchAddress(TString::Format("MOSAIC%dCHIP", x), &nPix[x]); // number of pixels fired == size of CHIPv,COLv,ROWv
+		h101->SetBranchAddress(TString::Format("MOSAIC%dCHIPv", x), Chip[x]); // ChipId array
+		h101->SetBranchAddress(TString::Format("MOSAIC%dCOLv", x), Col[x]);   // Col array
+		h101->SetBranchAddress(TString::Format("MOSAIC%dROWv", x), Row[x]);   // Row array
 
-void SetAllBranchAddress(TTree* h101, uint32_t (*Col)[MAX_HITS], uint (*Row)[MAX_HITS], uint* rowM, uint* colM, uint& tHi, uint& tLo) {
-	if(!h101 || h101->IsZombie()) return;
-	for(int x=1; x<=ALPIDE_NUM; ++x) {
-		h101->SetBranchAddress(TString::Format("ALPIDE%dCOLv", x), Col[x]);
-		h101->SetBranchAddress(TString::Format("ALPIDE%dROWv", x), Row[x]);
-		h101->SetBranchAddress(TString::Format("ALPIDE%dCOL", x), &colM[x]);
-		h101->SetBranchAddress(TString::Format("ALPIDE%dROW", x), &rowM[x]);
+		valid_mosaics.push_back(x);
 	}
-	h101->SetBranchAddress("ALPIDE1T_HI", &tHi);
-	h101->SetBranchAddress("ALPIDE1T_LO", &tLo);
+	if(valid_mosaics.size() == 0) throw std::runtime_error("SetReadBranchAddresses: couldn't find a single valid MOSAIC branch.");
+	return valid_mosaics;
 }
 
-void CoarseClusterise(const char* fileName, const char* outFile, ulong firstEvent=0, ulong maxEvents=0, int veto=0, const std::bitset<ALPIDE_NUM+1> mandatory = {0}) {	
+void clusterise(const char* fileName, const char* outFile, ulong firstEvent=0, ulong maxEvents=0, int veto=0) {	
 	TFile* in = new TFile(fileName,"READ");
     if(!in || in->IsZombie()) {cerr << "Can't open rootfile with name: " << fileName << "\n"; exit(EXIT_FAILURE);}
-    TTree* h101 = static_cast<TTree*>(in->Get("h101"));
+	
+	auto t1 = timeNow();
+
+    TTree* h101 = dynamic_cast<TTree*>(in->Get("h101"));
 	if(veto < 0) veto=0;
 	
 	/* Read containers */
-	UInt_t tHi, tLo;
-	UInt_t Col[ALPIDE_NUM+1][MAX_HITS];
-	UInt_t Row[ALPIDE_NUM+1][MAX_HITS];
-	UInt_t colM[ALPIDE_NUM+1];
-	UInt_t rowM[ALPIDE_NUM+1];
-	SetAllBranchAddress(h101, Col, Row, colM, rowM, tHi, tLo);
+	uint64_t ts[256];
+	uint64_t alpide_timestamp;
+	uint32_t nPix[256];
+	UInt_t Chip[256][MAX_HITS];
+	UInt_t Col[256][MAX_HITS];
+	UInt_t Row[256][MAX_HITS];
+	auto valid_boards = SetReadBranchAddresses(h101, ts, nPix, Chip, Col, Row);
 	
 	/* MARK: Write containers */
-	uint32_t cNum{0}; // number of clusters
-	uint32_t AlpideID[MAX_CLUSTERS]; 
-	uint32_t cSize[MAX_CLUSTERS];
+	uint32_t cNum = 0;              // total count of clusters in the event
+	uint32_t boardId[MAX_CLUSTERS]; // array of boardId for each cluster
+	uint32_t chipId[MAX_CLUSTERS];  // array of chipId  for each cluster
+	uint32_t cSize[MAX_CLUSTERS];   // array of cluster sizes
+	double   uCol[MAX_CLUSTERS];    // mean x cluster
+	double   uRow[MAX_CLUSTERS];    // mean x cluster
+	double   sCol[MAX_CLUSTERS];    // sig x cluster
+	double   sRow[MAX_CLUSTERS];    // sig y cluster
 
-	double uCol[MAX_CLUSTERS];
-	double uRow[MAX_CLUSTERS];
-	double uCol_SIG[MAX_CLUSTERS];
-	double uRow_SIG[MAX_CLUSTERS];
-
-	uint32_t _N{0};
-	uint32_t _ColV[MAX_CLUSTERS * 10];
-	uint32_t _RowV[MAX_CLUSTERS * 10];
+	/* For checking, we're branching also the raw data that got clustered */
+	uint32_t _N = 0;                      // total number of pixels fired in the event                     
+	uint32_t _boardId[MAX_CLUSTERS * 10]; // boardId for individual fired pixel
+	uint32_t _chipId[MAX_CLUSTERS * 10];  // chipId of individual fired pixel
+	uint32_t _ColV[MAX_CLUSTERS * 10];    // col of individual fired pixel
+	uint32_t _RowV[MAX_CLUSTERS * 10];    // row of individual fired pixel
 
 	TFile *out = new TFile(outFile, "RECREATE");
 	TTree *tree = new TTree("h101", "h101");
 	
 	/* MARK: outward branches */
-	tree->Branch("T_HI", &tHi);
-	tree->Branch("T_LO", &tLo);
-	tree->Branch("CL_NUM", &cNum);
-	tree->Branch("ALPIDE_ID", AlpideID, "ALPIDE_ID[CL_NUM]/i");
-	tree->Branch("CL_SIZE", cSize, "CL_SIZE[CL_NUM]/i");
-	tree->Branch("CL_uCOL", uCol, "CL_uCOL[CL_NUM]/D");
-	tree->Branch("CL_uROW", uRow, "CL_uROW[CL_NUM]/D");	
-	tree->Branch("CL_uCOL_SIG", uCol_SIG, "CL_uCOL_SIG[CL_NUM]/D");
-	tree->Branch("CL_uROW_SIG", uRow_SIG, "CL_uROW_SIG[CL_NUM]/D");	
+	// For timestamp, we can take the first board's. All the others are asserted to be within
+	// stitch window in the drasi process
+	tree->Branch("T", &alpide_timestamp, "T/l");
+	tree->Branch("ALPIDE_cluster_count", &cNum);
+	tree->Branch("ALPIDE_boardId", boardId, "ALPIDE_boardId[ALPIDE_cluster_count]/i");
+	tree->Branch("ALPIDE_chipId", chipId, "ALPIDE_chipId[ALPIDE_cluster_count]/i");
+	tree->Branch("ALPIDE_cluster_size", cSize, "ALPIDE_cluster_size[ALPIDE_cluster_count]/i");
+	tree->Branch("ALPIDE_cluster_col", uCol, "ALPIDE_cluster_col[ALPIDE_cluster_count]/D");
+	tree->Branch("ALPIDE_cluster_row", uRow, "ALPIDE_cluster_row[ALPIDE_cluster_count]/D");	
+	tree->Branch("ALPIDE_cluster_col_sig", sCol, "ALPIDE_cluster_col_sig[ALPIDE_cluster_count]/D");
+	tree->Branch("ALPIDE_cluster_row_sig", sRow, "ALPIDE_cluster_row_sig[ALPIDE_cluster_count]/D");	
+
 	tree->Branch("_N", &_N);
+	tree->Branch("_BOARD_ID", &_boardId, "_BOARD_ID[_N]/i");
+	tree->Branch("_CHIP_ID", &_chipId, "_CHIP_ID[_N]/i");
 	tree->Branch("_COLV", _ColV, "_COLV[_N]/i");
 	tree->Branch("_ROWV", _RowV, "_ROWV[_N]/i");
-
-	auto t1 = timeNow();
 
 	ulong lastEvent = SortEntries(firstEvent, maxEvents, h101);
 	printf("Entries in file: %lld\n", h101->GetEntries());
@@ -83,35 +95,41 @@ void CoarseClusterise(const char* fileName, const char* outFile, ulong firstEven
     for(ulong evNum = firstEvent; evNum < lastEvent; ++evNum) {
         ++evCounter; if(evCounter%100 == 0) PrintProgress((double)evCounter/maxEvents);
 		h101->GetEntry(evNum);
-	
 		cNum = 0; _N = 0;
-		std::bitset<ALPIDE_NUM+1> b = mandatory;
 		
-		/* MARK: clustering, i loops over all alpides {1,2,3 ... ALPIDE_NUM} */
-		for(int i=1; i<=ALPIDE_NUM; ++i) {
-			if(rowM[i]==0 || rowM[i] != colM[i]) continue;
+		for(auto board : valid_boards) {
+			// Check if board i has data in this event //
+			if(nPix[board] == 0) continue;
+			if(nPix[board] > MAX_HITS) {
+				cerr << "Board: " << board << " has " << nPix[board] \
+					 << " hits. Can't stuff them in the MAX_HITS = " \
+					 << MAX_HITS << " array. \n" \
+					 << " EvNum: " << evNum << endl << std::flush;
+				continue;
+			}
+			alpide_timestamp = ts[board];
+			
+			auto chip_clusters_pairs = ConstructClusters(Chip[board], Col[board], Row[board], nPix[board], veto);
+			// type: vector<pair<uint32_t, vector<vector<Point>>>>
+			for(auto& [chip, clusters] : chip_clusters_pairs) {
+				for(auto& cluster : clusters) {
+					// Save cluster mean & sigma into the arguments //
+					cSize[cNum] = FitCluster(cluster, uCol[cNum], uRow[cNum], sCol[cNum], sRow[cNum]); 
+					chipId[cNum] = chip;
 
-			auto clusters = ConstructClusters(Col[i], Row[i], rowM[i], veto);
-			if(clusters.size() == 0) continue;
+					boardId[cNum++] = board;
 
-			b[i]=0;
-
-			for(auto& cluster : clusters) {
-				// Save cluster mean & sigma into the arguments //
-				cSize[cNum] = FitCluster(cluster, uCol[cNum],uRow[cNum], uCol_SIG[cNum],uRow_SIG[cNum]); 
-				AlpideID[cNum] = i;
-				++cNum;
-
-				for(auto [px,py] : cluster) {
-					_ColV[_N] = px;
-					_RowV[_N] = py;
-					++_N;
+					for(auto& [px,py] : cluster) {
+						_boardId[_N] = board;
+						_chipId[_N] = chip;
+						_ColV[_N] = px;
+						_RowV[_N++] = py;
+					}
 				}
 			}
 		}
 
-		if(cNum>0 && b.none())
-			tree->Fill();
+		if(cNum>0) tree->Fill();
 	}
 
 	out->Write();
@@ -166,6 +184,7 @@ auto main(int argc, char* argv[]) -> int {
         }
         catch(exception& e) {}
     }
+#if 0
 	if(ParseCmdLine("dets", pStr, argc, argv)) {
 		RemoveCharsFromString(pStr, "[({})]");
 		if(pStr=="all" || pStr=="a") {
@@ -184,10 +203,10 @@ auto main(int argc, char* argv[]) -> int {
 			}
 		}
 	}
-
+#endif
 	/* ### ALPIDE_NUM is NOT defined at runtime! Once it's changed, the binary has to be recompiled. ### */
 
-	CoarseClusterise(fileName.c_str(), outFile.c_str(), firstEvent, maxEvents, veto, mandatory);
+	clusterise(fileName.c_str(), outFile.c_str(), firstEvent, maxEvents, veto);
 	
 	cout<<endl; return 0;
 }

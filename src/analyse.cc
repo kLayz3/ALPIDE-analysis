@@ -10,6 +10,7 @@ extern const std::string analyse_help;
 
 using namespace std;
 using namespace AlpideClustering;
+using namespace AlpideAuxFunctions;
 
 void SetOneBranchAddressRaw(TTree* h101, int x, uint* Col, uint* Row, uint& colM, uint& rowM, uint& tHi, uint& tLo) {
 	assert(x<=ALPIDE_NUM && x>=1);

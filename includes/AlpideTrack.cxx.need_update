@@ -13,6 +13,7 @@
 #define TOLERANCE 30
 
 using namespace std;
+using namespace AlpideAuxFunctions;
 
 const double AlpideTrack::minZ = *std::min_element(Z_Alpide+1, Z_Alpide+ALPIDE_NUM+1);
 const double AlpideTrack::maxZ = *std::max_element(Z_Alpide+1, Z_Alpide+ALPIDE_NUM+1);

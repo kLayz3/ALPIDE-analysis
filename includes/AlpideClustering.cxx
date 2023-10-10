@@ -7,16 +7,17 @@
 
 using namespace std;
 using namespace AlpideClustering;
+using namespace AlpideAuxFunctions;
 
-uint32_t AlpideClustering::DistXY(const Point& p1, const Point& p2) { //obsolete
+uint32_t AlpideClustering::DistXY(const Point p1, const Point p2) { //obsolete
 	return abs((int)p1.col - (int)p2.col) + abs((int)p1.row - (int)p2.row);
 }
 
-bool AlpideClustering::IsNeighbour(const Point& p1, const Point& p2) {
+inline bool AlpideClustering::IsNeighbour(const Point p1, const Point p2) {
     if(abs((int)p1.col - (int)p2.col)<=1 && abs((int)p1.row - (int)p2.row)<=1) return true;
     return false;
 }
-bool AlpideClustering::IsInCluster(const Point& p0, const vector<Point>& cluster) {
+bool AlpideClustering::IsInCluster(const Point p0, const vector<Point>& cluster) {
     for(uint32_t i=0; i<cluster.size(); ++i) {
         if(IsNeighbour(p0, cluster[i]))
             return true;
@@ -57,30 +58,38 @@ vector<Point> AlpideClustering::MakeCluster(vector<Point>& hits) {
 	return cluster;
 }
 
-vector<vector<Point>> AlpideClustering::ConstructClusters(uint32_t* ColArray, uint32_t* RowArray, uint32_t N, int veto) {
-    vector<Point> hits;
-    for(uint32_t i=0; i<N; ++i) 
-        hits.push_back(Point(ColArray[i], RowArray[i]));
+vector<pair<uint32_t, ClusterVec>> AlpideClustering::ConstructClusters(uint32_t* ChipArray, uint32_t* ColArray, uint32_t* RowArray, uint32_t N, int veto) {
+    vector<Point> hits[8]; //up to chipId 7
+    for(uint32_t i=0; i<N; ++i) {
+		auto chipId = ChipArray[i];
+		hits[chipId].emplace_back(std::move(Point(ColArray[i], RowArray[i])));
+	}
 
-    vector<vector<Point>> clusters;
+	vector<pair<uint32_t, ClusterVec>> chip_clusters_pairs;
+	for(int chipId = 0; chipId < 8; ++chipId) {
+		if(hits[chipId].size() == 0) continue;
+		ClusterVec clusters;
+		
+		/* Make isolated cluster around hits[0] with the MakeCluster(hits) call.
+		 * Keep doing until hits size reaches 0
+		 * Supply veto to not save clusters with size <= veto. Default 0 */
 
-    /* Make isolated cluster around hits[0] with the MakeCluster(hits) call.
-	 * Keep doing until hits size reaches 0
-	 * Supply veto to not save clusters with size <= veto. Default 0 */
-
-    while(hits.size() > 0) { /* Start a new cluster around hits[0] */
-		auto cluster = MakeCluster(hits);
-        if(cluster.size() > veto) clusters.push_back(cluster);
-    }
-
-    return clusters;
+		while(hits[chipId].size() > 0) { /* Start a new cluster around hits[0] */
+			auto cluster = MakeCluster(hits[chipId]);
+			if(cluster.size() > veto) clusters.push_back(cluster);
+		}
+		if(clusters.size() > 0) {
+			chip_clusters_pairs.emplace_back(std::move(make_pair(chipId, clusters)));
+		}
+	}
+    return chip_clusters_pairs;
 }
 
 uint32_t AlpideClustering::FitCluster(const vector<Point>& cluster, double& uX, double& uY, double& sX, double& sY) {
     int N = cluster.size();
 	if(N==0) {uX=0; uY=0; sX=0; sY=0; return 0;}
-	uint32_t meanX{0}; uint64_t sigmaX{0}; //col
-    uint32_t meanY{0}; uint64_t sigmaY{0}; //row
+	uint32_t meanX = 0; uint64_t sigmaX = 0; //col
+    uint32_t meanY = 0; uint64_t sigmaY = 0; //row
     for(auto p : cluster) {
         meanX += p.col; sigmaX += (uint64_t)(p.col*p.col);
         meanY += p.row; sigmaY += (uint64_t)(p.row*p.row);
@@ -100,14 +109,14 @@ uint32_t AlpideClustering::FitCluster(const vector<Point>& cluster, double& uX, 
 uint32_t AlpideClustering::FitCluster(const vector<Point>& cluster, double& uX, double& uY) {
     int N = cluster.size();
 	if(N==0) {uX=0; uY=0; return 0;}
-    uint32_t meanX(0); //col
-    uint32_t meanY(0); //row
+    uint32_t meanX = 0; //col
+    uint32_t meanY = 0; //row
     for(auto& p : cluster) { 
         meanX += p.col; 
         meanY += p.row;
     }
-    uX  = ((double)meanX/N);    
-	uY  = ((double)meanY/N);
+    uX  = (double)meanX/N;    
+	uY  = (double)meanY/N;
     return N;
 }
 

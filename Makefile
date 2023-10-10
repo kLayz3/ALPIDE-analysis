@@ -3,7 +3,7 @@ SRC_DIR:=src
 INC_DIR:=includes
 BUILD_DIR:=build
 
-CFLAGS:=-c -g -Wall
+CFLAGS:=-c -g -Wall #-O3
 CFLAGS+=$(shell root-config --cflags)\
 		$(shell root-config --auxcflags)\
 		-I$(INC_DIR) -I.

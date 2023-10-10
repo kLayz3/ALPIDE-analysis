@@ -67,7 +67,7 @@ using std::chrono::duration_cast;
 using std::chrono::seconds;
 using std::chrono::milliseconds;
 
-inline extern const std::vector<std::string> maskFile {
+inline const std::vector<std::string> maskFile {
     "",       // there's no ALPIDE0
     "16BC8",  // corresponds to MOSAIC0.cfg --ALPIDE1
     "12TB5",  // corresponds to MOSAIC1.cfg --ALPIDE2
@@ -78,7 +78,7 @@ inline extern const std::vector<std::string> maskFile {
 };
 
 
-inline extern const std::string clusterise_help =
+inline const std::string clusterise_help =
 "\nUsage: ./clusterise <OPT1> <OPT2> ...\n\
 \n\
 --file=inputName.root        ..Input file.\n\
@@ -110,7 +110,7 @@ Additional branches to show individual pixels clustered:\n\
 \n\
 Good luck, have fun <(^.^)>\n\n";
 
-inline extern const std::string calibrate_help =
+inline const std::string calibrate_help =
 "\nUsage: ./calibrate <OPT1> <OPT2> ...\n\
 \n\
 file=inputName.root          ..Input file.\n\
@@ -125,7 +125,7 @@ aCol, bCol, aRow, bRow and corresponding sigma branches. 'a' is the slope of the
 \n\
 Good luck, have fun <(^.^)>\n\n";
 
-inline extern const std::string analyse_help =
+inline const std::string analyse_help =
 "\nUsage: ./analyse <OPT1> <OPT2> ...\n\
 \n\
 --file=inputName.root        --Input file.\n\

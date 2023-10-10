@@ -8,6 +8,7 @@ extern const std::string calibrate_help;
 
 using namespace std;
 using namespace AlpideClustering;
+using namespace AlpideAuxFunctions;
 
 /* Read containers */
 uint cNum;
