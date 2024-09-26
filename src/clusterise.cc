@@ -10,6 +10,8 @@ using namespace std;
 using namespace AlpideClustering;
 using namespace AlpideAuxFunctions;
 
+uint32_t tpat = -1;
+
 vector<uint32_t> SetReadBranchAddresses(TTree* h101, uint64_t* ts, uint32_t* nPix, uint32_t (*Chip)[MAX_HITS], uint32_t (*Col)[MAX_HITS], uint (*Row)[MAX_HITS]) {
 	if(!h101 || h101->IsZombie()) throw std::runtime_error("Bad TTree pointer passed to SetAllBranchAddress.");
 	/* Try to find all MOSAIC##x##CHIP branches in the TTree */ 
@@ -27,6 +29,12 @@ vector<uint32_t> SetReadBranchAddresses(TTree* h101, uint64_t* ts, uint32_t* nPi
 
 		valid_mosaics.push_back(x);
 	}
+    
+    /* GSI Summer Student Project 2024: TPAT==2 is the periodic trigger, added on top of 
+     * TPAT==1 which is the cosmic trigger. */
+    if(branch_names->FindObject("TPAT")) {
+        h101->SetBranchAddress("TPAT", &tpat);
+    }
 	if(valid_mosaics.size() == 0) throw std::runtime_error("SetReadBranchAddresses: couldn't find a single valid MOSAIC branch.\n\
 			Expecting branches with names: MOSAIC%dCHIP etc.");
 	return valid_mosaics;
@@ -74,6 +82,7 @@ void clusterise(const char* fileName, const char* outFile, ulong firstEvent=0, u
 	// For timestamp, we can take the first board's. All the others are asserted to be within
 	// stitch window in the drasi process
 	tree->Branch("T", &alpide_timestamp, "T/l");
+    tree->Branch("TPAT", &tpat);
 	tree->Branch("ALPIDE_cluster_count", &cNum);
 	tree->Branch("ALPIDE_boardId", boardId, "ALPIDE_boardId[ALPIDE_cluster_count]/i");
 	tree->Branch("ALPIDE_chipId", chipId, "ALPIDE_chipId[ALPIDE_cluster_count]/i");
@@ -93,11 +102,12 @@ void clusterise(const char* fileName, const char* outFile, ulong firstEvent=0, u
 	printf("Entries in file: %lld\n", h101->GetEntries());
 
     ulong evCounter(0);
+    /* Event loop start. */
     for(ulong evNum = firstEvent; evNum < lastEvent; ++evNum) {
         ++evCounter; if(evCounter%100 == 0) PrintProgress((double)evCounter/maxEvents);
 		h101->GetEntry(evNum);
 		cNum = 0; _N = 0;
-		
+
 		for(auto board : valid_boards) {
 			// Check if board i has data in this event //
 			if(nPix[board] == 0) continue;
@@ -129,7 +139,7 @@ void clusterise(const char* fileName, const char* outFile, ulong firstEvent=0, u
 				}
 			}
 		}
-
+        
 		if(cNum>0) tree->Fill();
 	}
 
@@ -158,8 +168,19 @@ auto main(int argc, char* argv[]) -> int {
 		cout << clusterise_help; return 0;
 	}
 	if(!ParseCmdLine("output", outFile, argc, argv)) {
-		outFile = fileName.substr(0, fileName.find('.')) + "_cl.root";
+		std::regex r(R"(^(.+)(?:\.root)$)");
+		std::smatch m;
+		if(regex_match(fileName, m, r)) {
+			outFile = m[1].str() + "_cl.root";
+		}
+		else {
+			printf("Can't match file name: %s with the regex: %s\n", 
+					fileName.c_str(), 
+					R"(^(.+)(?:\.root)$)");
+			outFile = "_cl.root";
+		}
 		cout << "No output file specified. Writing into file: " << outFile << endl;
+
 	}
     
 	if(ParseCmdLine("veto", pStr, argc, argv)) {

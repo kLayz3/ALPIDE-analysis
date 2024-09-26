@@ -16,7 +16,7 @@
 #define MAX_CLUSTERS 4096 /* max clusters per an event */
 
 /* deprecated */
-#define ALPIDE_NUM 6 /* number of sensors in the telescope */
+#define ALPIDE_NUM 2 /* number of sensors in the telescope */
 
 #define MAX_BOARD_ID 4
 #define MAX_CHIP_ID 6

@@ -61,8 +61,17 @@
 #define KGRN  "\x1B[32m"
 #define KCYN  "\x1B[36m"
 
+#define RUSTIFY_TYPE(n) \
+    typedef uint##n##_t u##n; \
+    typedef int##n##_t i##n;
+RUSTIFY_TYPE( 8)
+RUSTIFY_TYPE(16)
+RUSTIFY_TYPE(32)
+RUSTIFY_TYPE(64)
+
 typedef uint32_t uint;
 typedef uint64_t ulong;
+
 using std::chrono::duration_cast;
 using std::chrono::seconds;
 using std::chrono::milliseconds;
@@ -110,13 +119,14 @@ Additional branches to show individual pixels clustered:\n\
 \n\
 Good luck, have fun <(^.^)>\n\n";
 
-inline const std::string calibrate_help =
+inline const std::string align_help =
 "\nUsage: ./calibrate <OPT1> <OPT2> ...\n\
 \n\
 file=inputName.root          ..Input file.\n\
 --first-event=N              ..Start from N-th event. Default 0. \n\
 --max-events=N               ..Specify maximum number of events. Default all entries.\n\
 --output=/PATH/TO/OUT.root   ..Specify output file name. Default same as input file with 'calib' suffix.\n\
+--draw_corr                  ..Draw Col and Row correlations relative to the referent ALPIDE.\n\
 --help                       ..Print this message to stdout. \n\
 \n\
 The exe will calibrate the detectors and write an output root file.\n\

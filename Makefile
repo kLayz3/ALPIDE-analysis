@@ -12,7 +12,7 @@ LDFLAGS:=$(shell root-config --ldflags)
 ROOTLIBS:=$(shell root-config --libs)
 
 #SRC:=$(wildcard $(SRC_DIR)/*.cc)
-SRC:=$(SRC_DIR)/clusterise.cc
+SRC:=$(SRC_DIR)/clusterise.cc $(SRC_DIR)/align.cc
 
 EXE:=$(patsubst $(SRC_DIR)/%.cc, %, $(SRC))
 
