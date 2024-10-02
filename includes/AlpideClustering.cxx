@@ -120,3 +120,13 @@ uint32_t AlpideClustering::FitCluster(const vector<Point>& cluster, double& uX, 
     return N;
 }
 
+vector<pair<float,float>> AlpideClustering::OffsetMeanInPlace(Cluster& cl, float muX, float muY) {
+	static_assert(sizeof(float) == sizeof(uint32_t), "Size of float isn't 32 bits. Something is different on your architecture.");
+	float t;
+	for(Point& p : cl) {
+		t = (float)p.col - muX; memcpy(&p.col, &t, sizeof(float));
+		t = (float)p.row - muY; memcpy(&p.row, &t, sizeof(float));
+	}
+	
+	return reinterpret_cast<vector<pair<float,float>>&>(cl);
+}

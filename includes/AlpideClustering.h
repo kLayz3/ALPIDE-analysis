@@ -21,7 +21,6 @@ namespace AlpideClustering {
 			return std::make_pair(col, row);
 		}
     };
-
 	typedef std::vector<Point> Cluster;
 	typedef std::vector<Cluster> ClusterVec;
 
@@ -35,6 +34,10 @@ namespace AlpideClustering {
     uint32_t FitCluster(const std::vector<Point>& cluster, double& uX, double& uY, double& sX, double& sY);
     uint32_t FitCluster(const std::vector<Point>& cluster, double& uX, double& uY);
 
+	/* 02.10.2024 --M.B. Helper fcn's for cluster analysis. */
+	
+	/* This function will eat up the Cluster object, and in it's place return a vector of pair of float's */
+	std::vector<std::pair<float,float>> OffsetMeanInPlace(Cluster& cl, float muX, float muY);
 }
 
 #endif 
